@@ -39,8 +39,6 @@ The methods work for almost all IEEE style floating-point formats.
 [#Muller2021][#LR2019]
 
 
-!!! WARNING
-    I'm a warning, perhaps. *Something might happen!*
 
 Error free transforms (EFT)
 ==============================================================
@@ -91,68 +89,77 @@ Arithmetic operations
 
 #### unary
 
-| method        | op           |~bound|error bound|fops| div|sqrt| fma| mul| add|common name| notes|
-| :---          | :---:        |------|--------   |---:|---:|---:|---:|---:|---:| :---      |:---  |
-|{fe,fr}_abs    | $\|(x)\|$    | 0    | 0         | ~5 |    |    |    |    |    |           |      |
-|{fe,fr}_neg    | $-(x)$       | 0    | 0         |  2 |    |    |    |    |    |           |      |
-|{fe,fr}_inv    | $1/x$        | 0.5 ?|           |  3 |  2 |    |  1 |    |  1 |           | <a href="#implementationdetails///inverse">SEE</a> |
-|{fe,fr}_inv_dn | $1/x$        | 1.5 ?|           |  3 |  1 |    |  1 |  1 |    |           | <a href="#implementationdetails///inverse">SEE</a> |
-|{fe,fr}_inv_dh | $1/x$        | 1.2 ?|           |  4 |  1 |    |  2 |  1 |    |           | <a href="#implementationdetails///inverse">SEE</a> |
-|               |              |      |           |    |    |    |    |    |    |           |      |
-|{fe,fr}_sqrt   | $\sqrt{(x)}$ |      |           |  5 |  1 |  1 |  1 |    |  2 |CPairSqrt  |      |
-|{fe,fr}_sqrt_d | $\sqrt{x}$   |      |           |  4 |  1 |  1 |  1 |    |  1 |CPairSqrt  |      |
-|               |              |      |           |    |    |    |    |    |    |           |      |
-
-
+| method         | op           |~bound|fops| div|sqrt| fma| mul| add|common name| notes|
+| :---           | :---:        |------|---:|---:|---:|---:|---:|---:| :---      |:---  |
+|{fe,fr}_abs     | $\|(x)\|$    |0     | ~5 |    |    |    |    |    |           |      |
+|{fe,fr}_neg     | $-(x)$       |0     |  2 |    |    |    |    |    |           |      |
+|{fe,fr}_inv_d   | $1/x$        |0.5   |  3 |  2 |    |  1 |    |    |           |      |
+|{fe,fr}_inv_dn  | $1/x$        |1.4587|  3 |  1 |    |  1 |  1 |    |           |      |
+|{fe,fr}_inv_dh  | $1/x$        |1.1905|  4 |  1 |    |  2 |  1 |    |           |      |
+|                |              |      |    |    |    |    |    |    |           |      |
+|{fe,fr}_sqrt    | $\sqrt{(x)}$ |3.0864|  5 |  1 |  1 |  1 |    |  2 |CPairSqrt  |      |
+|{fe,fr}_sqrt_d  | $\sqrt{x}$   |0.9982|  4 |  1 |  1 |  1 |    |  1 |CPairSqrt  |      |
+|                |              |      |    |    |    |    |    |    |           |      |
+| fe_sq          | $(x)^2$      |2.4072|  9 |    |    |  2 |  1 |  6 |           |      |
+| fr_sq          | $(x)^2$      |2.9997|  4 |    |    |  2 |  1 |  1 |           |      |
+| fe_sq_hq       | $(x)^2$      |1.5   | 15 |    |    |  3 |  2 | 10 |           |      |
+|{fe,fr}_sq_d    | $x^2$        |0     |  2 |    |    |  1 |  1 |    |2MulFMA    |      |
+|                |              |      |    |    |    |    |    |    |           |      |
+|{fe,fr}_rsqrt   | $(x)^{-1/2}$ | 4.894| 18 |  3 |  1 |  3 |  1 | 10 |           | 1    |
+|{fe,fr}_rsqrt_s | $(x)^{-1/2}$ |14.453| 18 |  3 |  1 |  3 |  1 | 10 |           |      |
+|{fe,fr}_rsqrt_d | $x^{-1/2}$   |5.3630|  7 |  1 |  1 |  3 |  2 |    |           |      |
+|{fe,fr}_rsqrt_dh| $x^{-1/2}$   |3.2921|  9 |  1 |  1 |  4 |  3 |    |           |      |
 
 * `{fe,fr}` indicates both are present and have identical implementations
 * `(x)`     indicates the input is a pair and `x` is a double
-* `?`       in `~bound` is a rough empirical measure
+* `num`    in `~bound` is a rough empirical measure in ULP. So relative error is $n\times 2^{-107}$
+
+1. denormal input goes boom
 
 
 #### binary
 
 | method   | op             |~bound     | error bound   |fops| div|sqrt| fma| mul| add| common name    | notes|
 | :---     | :---:          |------     | --------      |---:|---:|---:|---:|---:|---:|  :---          |:---  |
-|fe_add    | $(x) + (y)$    |$3u^2-11u^3$| $3u^2+13u^3$ | 20 |    |    |    |    | 20 |AccurateDWPlusDW| 4    |
-|fe_add_s  | $(x) + (y)$    |           | ---           | 11 |    |    |    |    | 11 |SloppyDWPlusDW  | 4    |
-|fe_add_d  | $(x) + y$      |$2u^2-6u^3$| $2u^2$        | 10 |    |    |    |    | 10 |DWPlusFP        | 4    |
+|fe_add    | $(x) + (y)$    |$3u^2-11u^3$| $3u^2+13u^3$ | 20 |    |    |    |    | 20 |AccurateDWPlusDW|      |
+|fe_add_s  | $(x) + (y)$    |           | ---           | 11 |    |    |    |    | 11 |SloppyDWPlusDW  |      |
+|fe_add_d  | $(x) + y$      |$2u^2-6u^3$| $2u^2$        | 10 |    |    |    |    | 10 |DWPlusFP        |      |
 |fe_add_dd | $x + y$        |           | 0             |  6 |    |    |    |    |  6 |2Sum            |      |
-|fe_sub    | $(x) - (y)$    |           | $3u^2+13u^3$  | 20 |    |    |    |    | 20 |AccurateDWPlusDW| 4    |
+|fe_sub    | $(x) - (y)$    |           | $3u^2+13u^3$  | 20 |    |    |    |    | 20 |AccurateDWPlusDW|      |
 |fe_sub_s  | $(x) - (y)$    |           | ---           | 11 |    |    |    |    | 11 |SloppyDWPlusDW  |      |
-|fe_sub_d  | $(x) - y$      |           | $2u^2$        | 10 |    |    |    |    | 10 |DWPlusFP        | 4    |
-|fe_d_sub  | $x - (y)$      |           | $2u^2$        | 10 |    |    |    |    | 10 |DWPlusFP        | 4    |
+|fe_sub_d  | $(x) - y$      |           | $2u^2$        | 10 |    |    |    |    | 10 |DWPlusFP        |      |
+|fe_d_sub  | $x - (y)$      |           | $2u^2$        | 10 |    |    |    |    | 10 |DWPlusFP        |      |
 |fe_sub_dd | $x - y$        |           | 0             |  6 |    |    |    |    |  6 |2Diff           |      |
-|fe_mul    | $(x)\times (y)$|$3.997u^2$ | $4u^2$        |  9 |    |    |  3 |  2 |  4 |DWTimesDW3      | 3,4  |
+|fe_mul    | $(x)\times (y)$|$3.997u^2$ | $4u^2$        |  9 |    |    |  3 |  2 |  4 |DWTimesDW3      | 3    |
 | ---      | $(x)\times (y)$|$4.985u^2$ | $5u^2$        |    |    |    |  2 |  2 |  7 |DWTimesDW1      | 3    |
 | ---      | $(x)\times (y)$|$4.9433u^2$| $5u^2$        | 11 |    |    |  2 |  2 |  7 |DWTimesDW2      | 3    |
-|fe_mul_d  | $(x)\times y$  |$1.984u^2$ | $2u^2$        |  6 |    |    |  2 |  1 |  3 |DWTimesFP3      | 4    |
-|fe_mul_da | $(x)\times y$  | $1.5u^2$  | $1.5u^2+4u^3$ | 10 |    |    |  1 |  2 |  7 |DWTimesFP1      | 4    |
+|fe_mul_d  | $(x)\times y$  |$1.984u^2$ | $2u^2$        |  6 |    |    |  2 |  1 |  3 |DWTimesFP3      |      |
+|fe_mul_da | $(x)\times y$  | $1.5u^2$  | $1.5u^2+4u^3$ | 10 |    |    |  1 |  2 |  7 |DWTimesFP1      |      |
 | ---      | $(x)\times y$  |$2.517u^2$ | $3u^2$        |    |    |    |    |    |    |DWTimesFP2      | 2    |
 |fe_mul_dd | $x\times y$    |           | 0             |  2 |    |    |  1 |  1 |    |2Prod           |      |
-|fe_sq_d   | $x^2$          |           | 0             |  2 |    |    |  1 |  1 |    |2Prod           |      |
-|fe_div    | $(x) / (y)$    |$8.665u^2$ | $15u^2+56u^3$ | 14 |  2 |    |  2 |  1 |  9 |DWDivDW2        | 4    |
+|fe_div    | $(x) / (y)$    |$8.665u^2$ | $15u^2+56u^3$ | 14 |  2 |    |  2 |  1 |  9 |DWDivDW2        |      |
 |fe_div_a  | $(x) / (y)$    |$5.922u^2$ | $9.8u^2$      | 32 |  1 |    |  6 |  5 | 20 |DWDivDW3        |      |
-|fe_div_d  | $(x) / y$      | $2.95u^2$ | $3u^2$        | 10 |  2 |    |  1 |  1 |  6 |DWDivFP3        | 4    |
+|fe_div_d  | $(x) / y$      | $2.95u^2$ | $3u^2$        | 10 |  2 |    |  1 |  1 |  6 |DWDivFP3        |      |
 | ---      | $(x) / (y)$    |$8.465u^2$ | $15u^2+56u^3$ |    |    |    |    |    |    |DWDivDW1        |      |
 |          |                |           |               |    |    |    |    |    |    |                |      |
-|fr_add    | $(x) + (y)$    |           | ---           |  8 |    |    |    |    |  8 |CPairSum        | 4    |
+|fr_add    | $(x) + (y)$    |           | ---           |  8 |    |    |    |    |  8 |CPairSum        |      |
 |fr_add_d  | $(x) + y$      |           |               |  4 |    |    |    |    |  4 |CPairSum        |      |
 |fr_add_dd | $x + y$        |           | 0             |  6 |    |    |    |    |  6 |2Sum            |      |
 |fr_sub    | $(x) - (y)$    |           | ---           |  8 |    |    |    |    |  8 |CPairSum        |      |
-|fr_d_sub  | $x - (y)$      |           | ---           |  7 |    |    |    |    |  7 |CPairSum        | 4    |
-|fr_sub_d  | $(x) - y$      |           | ---           |  7 |    |    |    |    |  7 |CPairSum        | 4    |
+|fr_d_sub  | $x - (y)$      |           | ---           |  7 |    |    |    |    |  7 |CPairSum        |      |
+|fr_sub_d  | $(x) - y$      |           | ---           |  7 |    |    |    |    |  7 |CPairSum        |      |
 |fr_sub_dd | $x - y$        |           | 0             |  6 |    |    |    |    |  6 |2Diff           |      |
-|fr_mul    | $(x)\times (y)$|           |               |  7 |    |    |    |    |    |CPairMul        |      |
-|fr_mul_d  | $(x)\times y$  |           |               |    |    |    |    |    |    |CPairMul        |      |
-|fr_mul_dd | $x\times y$    |           | 0             |  2 |    |    |  1 |  1 |    |2Prod           |      |
-|fr_div    | $(x) /  (y)$   |           |               |  5 |  2 |    |  1 |  1 |  2 |CPairDiv        |      |
+|fr_mul    | $(x)\times (y)$| $4.9844$  |               |  7 |    |    |    |    |    |CPairMul        |      |
+|fr_mul_d  | $(x)\times y$  | $2.0000$  |               |    |    |    |    |    |    |CPairMul        |      |
+|fr_mul_dd | $x\times y$    | 0         | 0             |  2 |    |    |  1 |  1 |    |2Prod           |      |
+|fr_div    | $(x) /  (y)$   | $7.0938$  |               |  5 |  2 |    |  1 |  1 |  2 |CPairDiv        |      |
+|fr_div_a  | $(x) /  (y)$   | $6.0380$  |               |    |    |    |    |    |    |                |      |
 
 
 
 * `method` is the name of the routine. 
 * `op` is the arithmetic operation performed where parenthesis (e.g. $\left(x\right)$) indicate a pair and without a `double`
-* `~bounds` [#MR2021].
+* `~bounds` [#MR2021].  Values without $u^2$ are local empirical measures (other than 0 which is error free)
 * `error bounds` are proven values and if rounding mode matters then it's the round-to-nearest ties-to-even. Most results are from "title"[^2].
 * `fops` number of floating point ops. exact number is arch specific.
 * `common name` is
@@ -160,7 +167,6 @@ Arithmetic operations
   1. the function has ordered parameter variant which requires $\vert x \vert \ge \vert y \vert$. The constraint drops 3 adds and produces identical results. The variant's name prefixes an "o" before the op (e.g. `fe_add` becomes `fe_oadd`)
   2. not implementation. variant w/o FMA or slower & larger error bound.
   3. error bound from "Muller2001"[^1]
-  4. final step is (including any ordered variant) is `Fast2Sum`. If this is the final pair operation before returning a result with `fe_result` then compiler will trivially remove 2 additions.
 
 
 Lowering to double and composed lowering functions
@@ -171,6 +177,11 @@ Lowering to double and composed lowering functions
 static inline double fe_result(fe_pair_t x) { return x.hi;      }
 static inline double fr_result(fr_pair_t x) { return x.hi+x.lo; }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+
+
+fr_result_mul_d
+
+
 
 
 
@@ -226,27 +237,24 @@ A 2003 paper [#CrDiv2003] describes
 
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ c
-fr_pair_t inv = fr_inv_d(k);       //
-//....
-result = fr_mul_d(inv,x);          // no..need the lowering version
+void array_divide(double* restrict d, double* restrict s, double x, size_t n)
+{
+  // compute 1/x a double-double
+  fe_pair_t r = fe_inv_d(x);
+
+  // tell the compiler we promise n is a non-zero multiple of 16
+  if (n == 0 || (n & 0xf) != 0) { __builtin_unreachable(); }
+
+  // d[i] = s[i]/x : correctly rounded ()
+  for(size_t i=0; i < n; i++) {
+    d[i] = fe_result_mul_d(r,s[i]);
+  }
+}
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 
 
+blah
 
-#### bar
-
-
-----------
-
-Implementation details
-==============================================================
-
-Spitball some of the custom stuff
-
-#### inverse
-
-
-#### square
 
 
 ----------
