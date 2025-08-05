@@ -3,6 +3,9 @@
 Overview
 ==============================================================
 
+** This is full of errors, omissions and out-of-date stuff.  The header file is the real documentation **
+
+
 This is a single file header that implements the most basic *"floating point expansion"* which is where we represent some number by more than one floating-point value. Here using exactly two values and the implementation is limited to double precision. This might also be called *unevaluated pair* or *double-double* arithmetic. This is all TL;DR see the provided references for greater details.
 
 The implementation uses the *C89* feature of passing and returning structures which compilers can handle well since we're limited to two primitive types (logically passed in register) and the code itself is *C99*.  We define two structures:
@@ -45,16 +48,17 @@ Error free transforms (EFT)
 
 Worker routines. These are all error free transforms (EFT).  For fast_sum/diff to be EFT places requirements on the input.
 
-| method            |fops| fma| mul| add| common name   |
-| :---------        |---:|:---|:---|---:| :---          |
-| {fe,fr}_fast_sum  | 3  |    |    | 3  | Fast2Sum      |
-| {fe,fr}_fast_diff | 3  |    |    | 3  | Fast2Sum      |
-| {fe,fr}_two_sum   | 6  |    |    | 6  | 2Sum          |
-| {fe,fr}_two_diff  | 6  |    |    | 6  | 2Sum          |
-| {fe,fr}_two_mul   | 2  |  1 |  1 |    | 2Prod/2MulFMA |
+| method            |fops| fma| mul| add| common name   | notes|
+| :---------        |---:|:---|:---|---:| :---          |:---  |
+| {fe,fr}_fast_sum  | 3  |    |    | 3  | Fast2Sum      |  1   |
+| {fe,fr}_fast_diff | 3  |    |    | 3  | Fast2Sum      |  1   |
+| {fe,fr}_two_sum   | 6  |    |    | 6  | 2Sum          |      |
+| {fe,fr}_two_diff  | 6  |    |    | 6  | 2Sum          |      |
+| {fe,fr}_two_mul   | 2  |  1 |  1 |    | 2Prod/2MulFMA |      |
 
-1. requires $ \vert x \vert \ge \vert y \vert $
-2. asd
+
+1. $x \pm y$ requires $ \vert x \vert \ge \vert y \vert $ to be error free. 
+
 
 [#Fast2Sum]
 
@@ -273,6 +277,12 @@ References
 [#CrDiv2003]: *"Accelerating Correctly Rounded Floating-Point Division When the Divisor is Known in Advance"*, Brisebarre, Muller & Raina, 2003 [(link)][https://perso.ens-lyon.fr/jean-michel.muller/fpdiv.html]
 
 [#Fast2Sum]:  *"FastTwoSum revisited"*, Jeannerod & Zimmermann, 2025, [(link)][https://inria.hal.science/hal-04875749]
+
+
+[^JR2016]: *"On relative errors of floating-point operations: optimal bounds and applications"*, Claude-Pierre Jeannerod, Siegfried M. Rump, 2016 ([PDF](https://hal.inria.fr/hal-00934443))
+[^cpj15]:  *"Exploiting structure in floating-point arithmetic"*, Claude-Pierre Jeannerod, 2015 ([PDF]())
+
+
 
 <style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'none', inlineCodeLang: 'c'};</script>
 <!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>
