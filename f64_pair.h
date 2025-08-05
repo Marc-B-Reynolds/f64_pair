@@ -42,11 +42,24 @@
 #pragma GCC optimize ("fp-contract=off")
 #pragma GCC optimize ("no-fast-math")
 #pragma GCC optimize ("no-math-errno")
-#pragma GCC optimize ("no-trapping-math")
+-#pragma GCC optimize ("no-trapping-math")
 #else
 #warning "this is sad"
 #endif
 
+#if defined(__GNUC__)
+  #define fe_noinline    __attribute__((noinline))
+  #define fe_likely(x)   __builtin_expect(!!(x), 1)
+  #define fe_unlikely(x) __builtin_expect(!!(x), 0)
+#elif defined(_MSC_VER)
+  #define fe_noinline    __declspec(noinline)
+  #define fe_likely(x)   (x)
+  #define fe_unlikely(x) (x)
+#else
+  #define fe_noinline
+  #define fe_likely(x)
+  #define fe_unlikely(x)
+#endif
 
 /*
 
@@ -108,6 +121,11 @@ static inline fr_pair_t fr2fe_bo_wrap(fe_pair_t (*op)(fe_pair_t, fe_pair_t), fr_
 
 static inline double fe_result(fe_pair_t x) { return x.hi;      }
 static inline double fr_result(fr_pair_t x) { return x.hi+x.lo; }
+
+// slow-path functions (non inlines)
+extern fe_noinline double add3_slowpath_f64(fe_pair_t, fe_pair_t);
+extern fe_noinline fe_pair_t   fe_add_d_cr_slowpath(fe_pair_t, fe_pair_t, fe_pair_t);
+extern fe_noinline fe_triple_t fe_triple_add_pd_slowpath(fe_pair_t, fe_pair_t, fe_pair_t);
 
 
 /// returns: $-x$
@@ -231,6 +249,49 @@ static inline fe_pair_t fe_add_d(fe_pair_t x, double y)
 }
 
 static inline fe_pair_t fe_d_add(double x, fe_pair_t y) { return fe_add_d(y,x); }
+
+
+static inline fe_pair_t fe_add_d_cr(fe_pair_t x, double c)
+{
+  // modified version of Graillat & Muller 2025
+  // algorithm 7.
+  // first bullet point after theorem 3.11
+  // uiCA: 37.00  (following fast-path)
+  fe_pair_t s = fe_two_sum(x.hi,c);
+  fe_pair_t v = fe_two_sum(x.lo,s.lo);
+  fe_pair_t w = fe_fast_sum(s.hi,v.hi);
+  uint64_t  t = fe_to_bits(v.hi) << 12;
+
+  // statistically always taken
+  if (fe_likely(t))
+    return fe_pair(w.hi,w.lo+v.lo);
+
+  return fe_add_d_cr_slowpath(s,v,w);
+}
+
+// 
+static inline fe_triple_t fe_triple_add_pd(fe_pair_t x, double c)
+{
+  // modified version of Graillat & Muller 2025
+  // algorithm 7.
+  // second bullet point after theorem 3.11
+  // uiCA: 53.00  (following fast-path)
+  fe_pair_t s = fe_two_sum(x.hi,c);
+  fe_pair_t v = fe_two_sum(x.lo,s.lo);
+  fe_pair_t w = fe_fast_sum(s.hi,v.hi);
+  uint64_t  t = fe_to_bits(v.hi) << 12;
+
+  // statistically always taken
+  if (fe_likely(t)) {
+    fe_pair_t e = fe_fast_sum(w.lo,v.lo);
+    
+    return (fe_triple_t){.h=w.hi, .m=e.hi, .l=e.lo};
+  }
+
+  return fe_triple_add_pd_slowpath(s,v,w);
+}
+
+
 
 
 static inline fe_pair_t fe_oadd_d(fe_pair_t x, double y)
@@ -644,11 +705,9 @@ static inline fe_pair_t fe_mul_a(fe_pair_t x, fe_pair_t y)
 #endif
 
 
-// need to do: Algorithm 12 (Faster-FMA-with-error) from [^8]
-
 static inline fe_pair_t fe_fma_ddd(double a, double b, double c)
 {
-  // "Exact and Approximated error of the FMA", Algorithm 5 (ErrFmaNearest)
+  // Boldo & Muller 2011, algorithm 5 (ErrFmaNearest)
   // 2 fma, 1 mul, 15 add
   double    r1 = fma(a,b,c);
   fe_pair_t u  = fe_mul_dd(a,b);           // 1 fma, 1 mul
@@ -663,7 +722,7 @@ static inline fe_pair_t fe_fma_ddd(double a, double b, double c)
 
 static inline fe_pair_t fe_fma_ddd_a(double a, double b, double c)
 {
-  // "Exact and Approximated error of the FMA", Algorithm 6 (ErrFmaApprox)
+  // Boldo & Muller 2011, algorithm 6 (ErrFmaApprox)
   // 2 fma, 1 mul, 9 add
   double    z = fma(a,b,c);
   fe_pair_t p = fe_mul_dd(a,b);            // 1 fma, 1 mul
@@ -1090,6 +1149,8 @@ static inline fr_pair_t fr_rsqrt_s(fr_pair_t x) { return fr2fe_uo_wrap(fe_rsqrt_
 // RO(x+y) : (round-to-odd)
 static inline double sum_ro_f64(double x, double y)
 {
+  // bit-manipulation version of Boldo & Melquiond (2008)
+  // SEE: reference.h for paper version.
   // uiCA: 31.33
   fe_pair_t v  = fe_two_sum(x,y);           //
   uint64_t  vh = fe_to_bits(v.hi);
@@ -1106,12 +1167,142 @@ static inline double sum_ro_f64(double x, double y)
 }
 
 
+// RN(a+b+c)  a.k.a correctly rounded.
+// seem very unlikely to outperform the fast-path/slow-path
+static inline double add3_bf_f64(double a, double b, double c)
+{
+  // modified version of Boldo & Melquiond (2008) which
+  // uses a branch-free bit manipulation version of
+  // their round to odd addition.
+  // uiCA: 60.25
+  fe_pair_t x = fe_two_sum(a,b);
+  fe_pair_t s = fe_two_sum(c,x.hi);
+  double    v = sum_ro_f64(x.lo,s.lo);
+
+  return(s.hi+v);
+}
+
+
+#if defined(FE_PAIR_IMPLEMENTATION)
+
+static inline double add3_slowpath_core(fe_pair_t s, fe_pair_t v)
+{
+  uint64_t ss = fe_to_bits(v.hi) ^ fe_to_bits(v.hi);
+
+  // should change this to bit manipulation
+  if (((int64_t)ss) > 0)
+    return s.hi + (1.125 * v.hi);
+  else
+    return s.hi + (0.875 * v.hi);
+}
+
+fe_noinline double add3_slowpath_f64(fe_pair_t s, fe_pair_t v)
+{
+  // this is just about zero
+  if (fe_unlikely(v.lo == 0))
+    return s.hi+v.hi;
+
+  return add3_slowpath_core(s,v);
+}
+
+fe_noinline fe_pair_t fe_add_d_cr_slowpath(fe_pair_t s, fe_pair_t v, fe_pair_t w)
+{
+  if (fe_unlikely(v.lo==0.0))
+    return fe_pair(w.hi,w.lo+v.lo);
+
+  double z     = add3_slowpath_core(s,v);
+  double alpha = z - w.hi;
+  double delta = w.lo - alpha;
+
+  return fe_pair(z,delta+v.lo);
+}
+
+fe_noinline fe_triple_t fe_triple_add_pd_slowpath(fe_pair_t s, fe_pair_t v, fe_pair_t w)
+{
+  if (fe_unlikely(v.lo==0.0)) {
+    fe_pair_t e = fe_fast_sum(w.lo,v.lo);
+    
+    return (fe_triple_t){.h=w.hi, .m=e.hi, .l=e.lo};
+  }
+  
+  double    z     = add3_slowpath_core(s,v);
+  double    alpha = z - w.hi;
+  double    delta = w.lo - alpha;
+  fe_pair_t e     = fe_fast_sum(delta,v.lo);
+  
+  return (fe_triple_t){.h=z, .m=e.hi, .l=e.lo};
+}
+
+#endif
+
+
+// RN(x+c)  a.k.a correctly rounded.
+static inline double fe_result_add_d(fe_pair_t x, double c)
+{
+  // modified version of Graillat & Muller 2025
+  // algorithm 6 (CR-DWPlusFP)
+  fe_pair_t s = fe_two_sum(x.hi,c);     // 6 adds
+  fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6 adds
+  uint64_t  t = fe_to_bits(x.hi) << 12;
+
+  // t computes algorithm 5 (IsNot1or3TimesPowerOf2)
+  // using bit manipulation. discards sign bit,
+  // exp and top explict bit.
+
+  if (fe_likely(t))
+    return s.hi+v.hi;
+
+  // expected rate to reach here: 2^-51
+  return add3_slowpath_f64(s,v);
+}
+
+
+// RN(x+c) : given |x| > |c|
+static inline double fe_result_oadd_d(fe_pair_t x, double c)
+{
+  // modified version of 'fe_result_add_d'
+  fe_pair_t s = fe_fast_sum(x.hi,c);    // 3 adds
+  fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6 adds
+  uint64_t  t = fe_to_bits(x.hi) << 12;
+
+  if (fe_likely(t))
+    return s.hi+v.hi;
+
+  return add3_slowpath_f64(s,v);
+}
+
+// RN(x+c) : given |x| < |c|
+static inline double fe_result_roadd_d(fe_pair_t x, double c)
+{
+  // modified version of 'fe_result_add_d'
+  fe_pair_t s = fe_fast_sum(c,x.hi);    // 3 adds
+  fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6 adds
+  uint64_t  t = fe_to_bits(x.hi) << 12;
+
+  if (fe_likely(t))
+    return s.hi+v.hi;
+
+  return add3_slowpath_f64(s,v);
+}
+
+
+
+// RN(a+b+c)  a.k.a correctly rounded.
+static inline double add3_f64(double a, double b, double c)
+{
+  // modified version of Graillat & Muller 2025
+  // algorithm 8 (EmulADD3)
+  return fe_result_add_d(fe_two_sum(a,b),c);
+}
+
 // 3 word expansion of: ab+c
-fe_triple_t fe_triple_fma_ddd(double a, double b, double c)
+static inline fe_triple_t fe_triple_fma_ddd(double a, double b, double c)
 {
   // both versions:  2 fma, 1 mul, 18 adds
 #if 0
-  //
+  // Boldo & Muller (2011)
+  // algorithm xx ()
+  // uiCA: 57.25
   fe_pair_t   x,s,v;
   fe_triple_t z;
   double      d;
@@ -1126,7 +1317,9 @@ fe_triple_t fe_triple_fma_ddd(double a, double b, double c)
   z.m  = v.hi;
   z.l  = v.lo;
 #else
-  // 
+  // Graillat & Muller 2025. should have higher throughput.
+  // algorithm 12 (Faster-FMA-with-error)
+  // uiCA: 50.25
   fe_triple_t z;
   fe_pair_t   x, alpha, beta, r;
   double      gamma;
