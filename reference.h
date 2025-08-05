@@ -44,7 +44,7 @@ static inline int gm_not_1or3_times_pot(double x)
 }
 
 // Graillat & Muller (2025)
-double gm_add3(double a, double b, double c)
+static inline double gm_add3(double a, double b, double c)
 {
   fe_pair_t x = fe_two_sum(a,b);
   fe_pair_t s = fe_two_sum(x.hi,c);
