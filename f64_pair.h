@@ -156,9 +156,10 @@ static inline fe_pair_t fe_two_sum(double a, double b)
   return fe_pair(x,y);
 }
 
-static inline fe_pair_t fe_copysign_d(fe_pair_t x, double n) { return fe_pair(copysign(x.hi,n), copysign(x.lo,n)); }
-static inline fr_pair_t fr_copysign_d(fr_pair_t x, double n) { return fr_pair(copysign(x.hi,n), copysign(x.lo,n)); }
-
+static inline fe_pair_t fe_copysign_d(fe_pair_t x, double    n) { return fe_pair(copysign(x.hi,n),    copysign(x.lo,n)); }
+static inline fr_pair_t fr_copysign_d(fr_pair_t x, double    n) { return fr_pair(copysign(x.hi,n),    copysign(x.lo,n)); }
+static inline fe_pair_t fe_copysign  (fe_pair_t x, fe_pair_t n) { return fe_pair(copysign(x.hi,n.hi), copysign(x.lo,n.hi)); }
+static inline fr_pair_t fr_copysign  (fr_pair_t x, fr_pair_t n) { return fr_pair(copysign(x.hi,n.hi), copysign(x.lo,n.hi)); }
 
 
 // $ (hi,lo) = x-y $
@@ -190,7 +191,9 @@ static inline fr_pair_t fr_mul_pot(double s, fr_pair_t x)  { return fe2fr(fe_mul
 /// returns: $(hi,lo) = x+y$. requires |x| >= |y| (or x = 0)
 ///
 /// * in absence of underflow and overflow the result is exact
-/// * constraint violation: (add notes and refrence)
+/// * if the inputs are reversed: |x| < |y| then the error bound
+///    is u|hi|. "Note on FastTwoSum with Directed Roundings",
+///    2024, Corbineau & Zimmermann, theorem 3.
 static inline fe_pair_t fe_fast_sum(double x, double y)
 {
   // Fast2Sum: 3 adds
@@ -257,9 +260,10 @@ static inline fe_pair_t fe_add_d_cr(fe_pair_t x, double c)
   // algorithm 7.
   // first bullet point after theorem 3.11
   // uiCA: 37.00  (following fast-path)
-  fe_pair_t s = fe_two_sum(x.hi,c);
-  fe_pair_t v = fe_two_sum(x.lo,s.lo);
-  fe_pair_t w = fe_fast_sum(s.hi,v.hi);
+  // 16 adds (for fast-path)
+  fe_pair_t s = fe_two_sum(x.hi,c);     // 6
+  fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6
+  fe_pair_t w = fe_fast_sum(s.hi,v.hi); // 3
   uint64_t  t = fe_to_bits(v.hi) << 12;
 
   // statistically always taken
@@ -276,22 +280,21 @@ static inline fe_triple_t fe_triple_add_pd(fe_pair_t x, double c)
   // algorithm 7.
   // second bullet point after theorem 3.11
   // uiCA: 53.00  (following fast-path)
-  fe_pair_t s = fe_two_sum(x.hi,c);
-  fe_pair_t v = fe_two_sum(x.lo,s.lo);
-  fe_pair_t w = fe_fast_sum(s.hi,v.hi);
+  // 18 adds (for fast-path)
+  fe_pair_t s = fe_two_sum(x.hi,c);     // 6
+  fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6
+  fe_pair_t w = fe_fast_sum(s.hi,v.hi); // 3
   uint64_t  t = fe_to_bits(v.hi) << 12;
 
   // statistically always taken
   if (fe_likely(t)) {
-    fe_pair_t e = fe_fast_sum(w.lo,v.lo);
+    fe_pair_t e = fe_fast_sum(w.lo,v.lo); // 3
     
     return (fe_triple_t){.h=w.hi, .m=e.hi, .l=e.lo};
   }
 
   return fe_triple_add_pd_slowpath(s,v,w);
 }
-
-
 
 
 static inline fe_pair_t fe_oadd_d(fe_pair_t x, double y)
@@ -1147,7 +1150,7 @@ static inline fr_pair_t fr_rsqrt_s(fr_pair_t x) { return fr2fe_uo_wrap(fe_rsqrt_
 
 
 // RO(x+y) : (round-to-odd)
-static inline double sum_ro_f64(double x, double y)
+static inline double add_ro_f64(double x, double y)
 {
   // bit-manipulation version of Boldo & Melquiond (2008)
   // SEE: reference.h for paper version.
@@ -1177,7 +1180,7 @@ static inline double add3_bf_f64(double a, double b, double c)
   // uiCA: 60.25
   fe_pair_t x = fe_two_sum(a,b);
   fe_pair_t s = fe_two_sum(c,x.hi);
-  double    v = sum_ro_f64(x.lo,s.lo);
+  double    v = add_ro_f64(x.lo,s.lo);
 
   return(s.hi+v);
 }
@@ -1285,8 +1288,6 @@ static inline double fe_result_roadd_d(fe_pair_t x, double c)
   return add3_slowpath_f64(s,v);
 }
 
-
-
 // RN(a+b+c)  a.k.a correctly rounded.
 static inline double add3_f64(double a, double b, double c)
 {
@@ -1356,8 +1357,6 @@ static inline fe_triple_t fe_triple_fma_ddd(double a, double b, double c)
 /// <br>
 /// SEE: https://marc-b-reynolds.github.io/math/2020/01/09/ConstAddMul.html (and references)
 
-// meh. rethink conversion things?
-static inline fe_pair_t fr_load(fe_pair_t x) { return fe_pair(x.hi,x.lo); }
 
 // extended precision multiplicative constants as unevaluate pairs: {RN(K) + RN(K-RN(K))}
 static const fe_pair_t fe_k_pi       = {.hi = 0x1.921fb54442d18p1,  .lo= 0x1.1a62633145c07p-53};
@@ -1391,7 +1390,9 @@ static inline bool fe_eq(fe_pair_t x, fe_pair_t y)
 }
 
 
-// generics versions (dd = double-double)
+// generics versions (dd = double-double). Nothing really here yet because
+// I'm not so sure it's an interesting thing to do. Treating double-doubles
+// like builtins types (hardware supported) doesn't seem very useful.
 
 #define dd_def_uop(x,OP)                   \
     double: _Generic((x),                  \
