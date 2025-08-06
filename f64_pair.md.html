@@ -3,6 +3,8 @@
 Overview
 ==============================================================
 
+blah
+
 ** This is full of errors, omissions and out-of-date stuff.  The header file is the real documentation **
 
 
@@ -57,14 +59,17 @@ Worker routines. These are all error free transforms (EFT).  For fast_sum/diff t
 | {fe,fr}_two_mul   | 2  |  1 |  1 |    | 2Prod/2MulFMA |      |
 
 
-1. $x \pm y$ requires $ \vert x \vert \ge \vert y \vert $ to be error free. 
+1. $x \pm y$ requires $ \lvert x \lvert \ge \lvert y \lvert $ to be error free.  If the inputs are backwards: 
+   $ \lvert x \lvert \lt \lvert y \lvert $ then the error bound is $\lvert h \lvert ~u$ where $h$ is the high result.
 
 
 [#Fast2Sum]
 
 <details markdown="1"><summary>function list:</summary>
 
-#### EFT functions  
+#### EFT functions
+
+
   
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ c
 fe_pair_t fe_two_mul (double x, double y)
@@ -88,6 +93,33 @@ Blah
 ==============================================================
 
 
+blah
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ c
+fe_pair_t fe_copysign_d(fe_pair_t x, double    n)
+fr_pair_t fr_copysign_d(fr_pair_t x, double    n)
+fe_pair_t fe_copysign  (fe_pair_t x, fe_pair_t n)
+fr_pair_t fr_copysign  (fr_pair_t x, fr_pair_t n)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+
+<br>
+Multiplying by a power-of-two value $s$ is simply two products:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ c
+fe_pair_t fe_mul_pot(double s, fe_pair_t x)
+fr_pair_t fe_mul_pot(double s, fr_pair_t x)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+
+
+
+
+| method            | op                  |
+| :---              | :---:               |
+| {fe,fr}_copysign  |                     |
+|                   |                     |
+
+
+
 Arithmetic operations
 ==============================================================
 
@@ -95,7 +127,7 @@ Arithmetic operations
 
 | method         | op           |~bound|fops| div|sqrt| fma| mul| add|common name| notes|
 | :---           | :---:        |------|---:|---:|---:|---:|---:|---:| :---      |:---  |
-|{fe,fr}_abs     | $\|(x)\|$    |0     | ~5 |    |    |    |    |    |           |      |
+|{fe,fr}_abs     | $\lvert(x)\lvert$    |0     | ~5 |    |    |    |    |    |           |      |
 |{fe,fr}_neg     | $-(x)$       |0     |  2 |    |    |    |    |    |           |      |
 |{fe,fr}_inv_d   | $1/x$        |0.5   |  3 |  2 |    |  1 |    |    |           |      |
 |{fe,fr}_inv_dn  | $1/x$        |1.4587|  3 |  1 |    |  1 |  1 |    |           |      |
@@ -123,41 +155,42 @@ Arithmetic operations
 
 #### binary
 
-| method   | op             |~bound     | error bound   |fops| div|sqrt| fma| mul| add| common name    | notes|
-| :---     | :---:          |------     | --------      |---:|---:|---:|---:|---:|---:|  :---          |:---  |
-|fe_add    | $(x) + (y)$    |$3u^2-11u^3$| $3u^2+13u^3$ | 20 |    |    |    |    | 20 |AccurateDWPlusDW|      |
-|fe_add_s  | $(x) + (y)$    |           | ---           | 11 |    |    |    |    | 11 |SloppyDWPlusDW  |      |
-|fe_add_d  | $(x) + y$      |$2u^2-6u^3$| $2u^2$        | 10 |    |    |    |    | 10 |DWPlusFP        |      |
-|fe_add_dd | $x + y$        |           | 0             |  6 |    |    |    |    |  6 |2Sum            |      |
-|fe_sub    | $(x) - (y)$    |           | $3u^2+13u^3$  | 20 |    |    |    |    | 20 |AccurateDWPlusDW|      |
-|fe_sub_s  | $(x) - (y)$    |           | ---           | 11 |    |    |    |    | 11 |SloppyDWPlusDW  |      |
-|fe_sub_d  | $(x) - y$      |           | $2u^2$        | 10 |    |    |    |    | 10 |DWPlusFP        |      |
-|fe_d_sub  | $x - (y)$      |           | $2u^2$        | 10 |    |    |    |    | 10 |DWPlusFP        |      |
-|fe_sub_dd | $x - y$        |           | 0             |  6 |    |    |    |    |  6 |2Diff           |      |
-|fe_mul    | $(x)\times (y)$|$3.997u^2$ | $4u^2$        |  9 |    |    |  3 |  2 |  4 |DWTimesDW3      | 3    |
-| ---      | $(x)\times (y)$|$4.985u^2$ | $5u^2$        |    |    |    |  2 |  2 |  7 |DWTimesDW1      | 3    |
-| ---      | $(x)\times (y)$|$4.9433u^2$| $5u^2$        | 11 |    |    |  2 |  2 |  7 |DWTimesDW2      | 3    |
-|fe_mul_d  | $(x)\times y$  |$1.984u^2$ | $2u^2$        |  6 |    |    |  2 |  1 |  3 |DWTimesFP3      |      |
-|fe_mul_da | $(x)\times y$  | $1.5u^2$  | $1.5u^2+4u^3$ | 10 |    |    |  1 |  2 |  7 |DWTimesFP1      |      |
-| ---      | $(x)\times y$  |$2.517u^2$ | $3u^2$        |    |    |    |    |    |    |DWTimesFP2      | 2    |
-|fe_mul_dd | $x\times y$    |           | 0             |  2 |    |    |  1 |  1 |    |2Prod           |      |
-|fe_div    | $(x) / (y)$    |$8.665u^2$ | $15u^2+56u^3$ | 14 |  2 |    |  2 |  1 |  9 |DWDivDW2        |      |
-|fe_div_a  | $(x) / (y)$    |$5.922u^2$ | $9.8u^2$      | 32 |  1 |    |  6 |  5 | 20 |DWDivDW3        |      |
-|fe_div_d  | $(x) / y$      | $2.95u^2$ | $3u^2$        | 10 |  2 |    |  1 |  1 |  6 |DWDivFP3        |      |
-| ---      | $(x) / (y)$    |$8.465u^2$ | $15u^2+56u^3$ |    |    |    |    |    |    |DWDivDW1        |      |
-|          |                |           |               |    |    |    |    |    |    |                |      |
-|fr_add    | $(x) + (y)$    |           | ---           |  8 |    |    |    |    |  8 |CPairSum        |      |
-|fr_add_d  | $(x) + y$      |           |               |  4 |    |    |    |    |  4 |CPairSum        |      |
-|fr_add_dd | $x + y$        |           | 0             |  6 |    |    |    |    |  6 |2Sum            |      |
-|fr_sub    | $(x) - (y)$    |           | ---           |  8 |    |    |    |    |  8 |CPairSum        |      |
-|fr_d_sub  | $x - (y)$      |           | ---           |  7 |    |    |    |    |  7 |CPairSum        |      |
-|fr_sub_d  | $(x) - y$      |           | ---           |  7 |    |    |    |    |  7 |CPairSum        |      |
-|fr_sub_dd | $x - y$        |           | 0             |  6 |    |    |    |    |  6 |2Diff           |      |
-|fr_mul    | $(x)\times (y)$| $4.9844$  |               |  7 |    |    |    |    |    |CPairMul        |      |
-|fr_mul_d  | $(x)\times y$  | $2.0000$  |               |    |    |    |    |    |    |CPairMul        |      |
-|fr_mul_dd | $x\times y$    | 0         | 0             |  2 |    |    |  1 |  1 |    |2Prod           |      |
-|fr_div    | $(x) /  (y)$   | $7.0938$  |               |  5 |  2 |    |  1 |  1 |  2 |CPairDiv        |      |
-|fr_div_a  | $(x) /  (y)$   | $6.0380$  |               |    |    |    |    |    |    |                |      |
+| method    | op             |~bound     | error bound   |fops| div|sqrt| fma| mul| add| common name    | notes|
+| :---      | :---:          |------     | --------      |---:|---:|---:|---:|---:|---:|  :---          |:---  |
+|fe_add     | $(x) + (y)$    |$3u^2-11u^3$| $3u^2+13u^3$ | 20 |    |    |    |    | 20 |AccurateDWPlusDW|      |
+|fe_add_s   | $(x) + (y)$    |           | ---           | 11 |    |    |    |    | 11 |SloppyDWPlusDW  |      |
+|fe_add_d   | $(x) + y$      |$2u^2-6u^3$| $2u^2$        | 10 |    |    |    |    | 10 |DWPlusFP        |      |
+|fe_add_d_cr| $(x) + y$      |           | $u$           | 16 |    |    |    |    | 16 |                | 4    |
+|fe_add_dd  | $x + y$        |           | 0             |  6 |    |    |    |    |  6 |2Sum            |      |
+|fe_sub     | $(x) - (y)$    |           | $3u^2+13u^3$  | 20 |    |    |    |    | 20 |AccurateDWPlusDW|      |
+|fe_sub_s   | $(x) - (y)$    |           | ---           | 11 |    |    |    |    | 11 |SloppyDWPlusDW  |      |
+|fe_sub_d   | $(x) - y$      |           | $2u^2$        | 10 |    |    |    |    | 10 |DWPlusFP        |      |
+|fe_d_sub   | $x - (y)$      |           | $2u^2$        | 10 |    |    |    |    | 10 |DWPlusFP        |      |
+|fe_sub_dd  | $x - y$        |           | 0             |  6 |    |    |    |    |  6 |2Diff           |      |
+|fe_mul     | $(x)\times (y)$|$3.997u^2$ | $4u^2$        |  9 |    |    |  3 |  2 |  4 |DWTimesDW3      | 3    |
+| ---       | $(x)\times (y)$|$4.985u^2$ | $5u^2$        |    |    |    |  2 |  2 |  7 |DWTimesDW1      | 3    |
+| ---       | $(x)\times (y)$|$4.9433u^2$| $5u^2$        | 11 |    |    |  2 |  2 |  7 |DWTimesDW2      | 3    |
+|fe_mul_d   | $(x)\times y$  |$1.984u^2$ | $2u^2$        |  6 |    |    |  2 |  1 |  3 |DWTimesFP3      |      |
+|fe_mul_da  | $(x)\times y$  | $1.5u^2$  | $1.5u^2+4u^3$ | 10 |    |    |  1 |  2 |  7 |DWTimesFP1      |      |
+| ---       | $(x)\times y$  |$2.517u^2$ | $3u^2$        |    |    |    |    |    |    |DWTimesFP2      | 2    |
+|fe_mul_dd  | $x\times y$    |           | 0             |  2 |    |    |  1 |  1 |    |2Prod           |      |
+|fe_div     | $(x) / (y)$    |$8.665u^2$ | $15u^2+56u^3$ | 14 |  2 |    |  2 |  1 |  9 |DWDivDW2        |      |
+|fe_div_a   | $(x) / (y)$    |$5.922u^2$ | $9.8u^2$      | 32 |  1 |    |  6 |  5 | 20 |DWDivDW3        |      |
+|fe_div_d   | $(x) / y$      | $2.95u^2$ | $3u^2$        | 10 |  2 |    |  1 |  1 |  6 |DWDivFP3        |      |
+| ---       | $(x) / (y)$    |$8.465u^2$ | $15u^2+56u^3$ |    |    |    |    |    |    |DWDivDW1        |      |
+|           |                |           |               |    |    |    |    |    |    |                |      |
+|fr_add     | $(x) + (y)$    |           | ---           |  8 |    |    |    |    |  8 |CPairSum        |      |
+|fr_add_d   | $(x) + y$      |           |               |  4 |    |    |    |    |  4 |CPairSum        |      |
+|fr_add_dd  | $x + y$        |           | 0             |  6 |    |    |    |    |  6 |2Sum            |      |
+|fr_sub     | $(x) - (y)$    |           | ---           |  8 |    |    |    |    |  8 |CPairSum        |      |
+|fr_d_sub   | $x - (y)$      |           | ---           |  7 |    |    |    |    |  7 |CPairSum        |      |
+|fr_sub_d   | $(x) - y$      |           | ---           |  7 |    |    |    |    |  7 |CPairSum        |      |
+|fr_sub_dd  | $x - y$        |           | 0             |  6 |    |    |    |    |  6 |2Diff           |      |
+|fr_mul     | $(x)\times (y)$| $4.9844$  |               |  7 |    |    |    |    |    |CPairMul        |      |
+|fr_mul_d   | $(x)\times y$  | $2.0000$  |               |    |    |    |    |    |    |CPairMul        |      |
+|fr_mul_dd  | $x\times y$    | 0         | 0             |  2 |    |    |  1 |  1 |    |2Prod           |      |
+|fr_div     | $(x) /  (y)$   | $7.0938$  |               |  5 |  2 |    |  1 |  1 |  2 |CPairDiv        |      |
+|fr_div_a   | $(x) /  (y)$   | $6.0380$  |               |    |    |    |    |    |    |                |      |
 
 
 
@@ -168,23 +201,51 @@ Arithmetic operations
 * `fops` number of floating point ops. exact number is arch specific.
 * `common name` is
 * `notes`
-  1. the function has ordered parameter variant which requires $\vert x \vert \ge \vert y \vert$. The constraint drops 3 adds and produces identical results. The variant's name prefixes an "o" before the op (e.g. `fe_add` becomes `fe_oadd`)
+  1. the function has ordered parameter variant which requires $\lvert x \lvert \ge \lvert y \lvert$. The constraint drops 3 adds and produces identical results. The variant's name prefixes an "o" before the op (e.g. `fe_add` becomes `fe_oadd`)
   2. not implementation. variant w/o FMA or slower & larger error bound.
   3. error bound from "Muller2001"[^1]
+  4. fast-path/slow-path method. *fops* is for following fast-path.
+  
+  
+  
+
+Composed ops
+==============================================================
+
+
+| method     | op             |  bound   |fops| div|fma | mul| add| common name     | notes|
+| :---       | :---:          | -------- |---:|---:|---:|---:|---:|  :---           |:---  |
+| fe_fma_ddd | $a\cdot b +c$  |          | 18 |    |  2 |  1 | 15 |ErrFmaNearest    |      |
+|fe_fma_ddd_a| $a\cdot b +c$  |          | 12 |    |  2 |  1 |  9 |ErrFmaApprox     |      |
+|            | $         $    |          |    |    |    |    |    |                 |      |
+|            | $         $    |          |    |    |    |    |    |                 |      |
+
+
 
 
 Lowering to double and composed lowering functions
 ==============================================================
 
+\\
+blah blah
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ c
 static inline double fe_result(fe_pair_t x) { return x.hi;      }
 static inline double fr_result(fr_pair_t x) { return x.hi+x.lo; }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 
+<br>
 
-fr_result_mul_d
+foo
 
+
+| method            | op                  |  bound   |fops| div|fma | mul| add| notes    |
+| :---              | :---                | -------- |---:|---:|---:|---:|---:|  :---           |
+| fr_result_mul_d   |                     |          |    |    |    |    |    |                 |
+| fe_result_mul_d   |                     |          |    |    |    |    |    |                 |
+| fe_result_add_d   |                     |          |    |    |    |    |    |                 |
+| fe_result_oadd_d  |                     |          |    |    |    |    |    |                 |
+| fe_result_roadd_d |                     |          |    |    |    |    |    |                 |
 
 
 
@@ -195,6 +256,24 @@ Comparision
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ c
 foo bar baz
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+
+
+
+Double stuff
+==============================================================
+
+
+add3_f64
+add3_ro_f64
+
+
+
+Triple stuff (foo)
+==============================================================
+
+fe_triple_add_pd
+fe_triple_fma_ddd
+
 
 
 Generic macros
