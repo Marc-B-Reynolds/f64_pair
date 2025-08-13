@@ -8,6 +8,7 @@ reasonable number of functions. This is includes enabling so-call floating point
 
 Spitball overview:
 * REFERENCES! (probably the most useful bit)
+* More of copy/paste/modify set of code snippets than library
 * modern versions of classic methods: FMA variants and doesn't replace divides by a large
 number of products and additions
 * Lange and Rump's relaxed (CPair) methods
