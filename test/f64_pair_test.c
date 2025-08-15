@@ -283,15 +283,15 @@ uop_table_t uops[] =
 
   { DEF_FE(fe_sq,    mpfr_sqr), OP_U(0x1.341ee8p+1, UP(0x1.69c9710dacf63p+0, 0x1.49456cb73be15p-54), UP(0x1.ff49bf5b4b351p+0,-0x1.193c992e56cp-60))   },
   { DEF_FE(fe_sq_hq, mpfr_sqr), OP_U(0x1.8p+0,      UP(0x1.8005230146627p+0, 0x1.467ae867a8928p-54), UP(0x1.2007b48f1afecp+1,-0x1.e6477cfc4fb7p-54))  }, 
-  { DEF_FR(fr_sq,    mpfr_sqr), OP_U(0x1.7ff614p+1, UP(0x1.229486b38d6b2p+0, 0x1.fffd8c93f7beap-54), UP(0x1.49d4d75ad2e2bp+0, 0x1.0816997c3baeap-52)) },
+  { DEF_FR(fr_sq,    mpfr_sqr), OP_U(0x1.7ff8b4p+1, UP(0x1.2dc7f7bd220a6p+0, 0x1.fff1cb837d2aep-54), UP(0x1.63bfd8c5d9d5dp+0, 0x1.828869ddc7e41p-52)) },
 
   { DEF_FE(fe_inv,   mpfr_inv), OP_U(0x1.b3e456p+2, UP(0x1.03f98822d44b1p+0, 0x1.fdf06a56693fbp-54), UP(0x1.f82c0ce4c8549p-1,-0x1.dacf304ef2868p-55)) },
   { DEF_FE(fe_inv_n, mpfr_inv), OP_U(0x1.b5e106p+2, UP(0x1.00d0047006f1dp+0, 0x1.fb9d588e7e10ap-54), UP(0x1.fe61481c8b467p-1,-0x1.e8df70bf85325p-55)) },
   { DEF_FE(fe_inv,   mpfr_inv), OP_U(0x1.b3e456p+2, UP(0x1.03f98822d44b1p+0, 0x1.fdf06a56693fbp-54), UP(0x1.f82c0ce4c8549p-1,-0x1.dacf304ef2868p-55)) },
   { DEF_FE(fe_inv_n, mpfr_inv), OP_U(0x1.b5e106p+2, UP(0x1.00d0047006f1dp+0, 0x1.fb9d588e7e10ap-54), UP(0x1.fe61481c8b467p-1,-0x1.e8df70bf85325p-55)) },
-  { DEF_FR(fr_inv,   mpfr_inv), OP_U(0x1.eebddap+2, UP(0x1.01674824684e7p+0, 0x1.f7291b1be27fp-54), UP(0x1.fd355aae68ef6p-1,-0x1.71c6f1a803bc1p-53)) },
+  { DEF_FR(fr_inv,   mpfr_inv), OP_U(0x1.f8d49ep+2, UP(0x1.0165f9954dad5p+0, 0x1.ff6ba36b8465bp-54), UP(0x1.fd37f0892baf2p-1,-0x1.797d268258354p-53)) },
   { DEF_FR(fr_inv_n, mpfr_inv), OP_U(0x1.085e49p+3, UP(0x1.00048b09bc88cp+0, 0x1.fe98c86e04422p-54), UP(0x1.fff6ea15cdd5fp-1,-0x1.7e0c5705437e4p-53)) },
-  { DEF_FR(fr_inv_a, mpfr_inv), OP_U(0x1.b2cf6p+2,  UP(0x1.01c7416a5f0d3p+0, 0x1.fddd0b6ac709ep-54), UP(0x1.fc77c532d3367p-1,-0x1.7af51f66ed10bp-53)) },
+  { DEF_FR(fr_inv_a, mpfr_inv), OP_U(0x1.b6ea32p+2, UP(0x1.00f75e9fc7952p+0, 0x1.fdc8cbe62aa65p-54), UP(0x1.fe131f03b2813p-1,-0x1.744637875d5e6p-53)) },
   { DEF_FE(fe_sqrt,  mpfr_sqrt),OP_U(0x1.8da008p+1, UP(0x1.00ec6c9d80937p+0, 0x1.f9b76feee2a06p-54), UP(0x1.00761b10455b8p+0, 0x1.7d7d284f7655ap-53)) },
 };
 
@@ -598,7 +598,7 @@ typedef struct {
 uop_dp_table_t op_dp[] =
 {
   { DEF_FE(fe_d_add, mpfr_add), OP_B(0x1p+0,        0x1.c2f8982c34d9p-3,  UP(0x1.a70c5cf1fde5dp-3, 0x1.5519c72ad6036p-57), UP(0x1.b5027a8f195f7p-2,-0x1.55731c6a94fe4p-56)) },
-  { DEF_FE(fe_d_div, mpfr_div), OP_B(0x1.bc3698p+2, 0x1.f135dea7a280ap-1, UP(0x1.04fa52e0932f6p-2, 0x1.f416a52268bdep-56), UP(0x1.e7ba0cde25a4cp+1,-0x1.a1dc3508d491cp-53)) }
+  { DEF_FE(fe_d_div, mpfr_div), OP_B(0x1.c2e06ep+2, 0x1.cc158367f70a6p-2, UP(0x1.017bfdc1b8546p-1, 0x1.f5568b18f8b45p-55), UP(0x1.c96e875934843p-1,-0x1.79b08b4797a3p-55)) }
 };
 
 void op_dp_tests(void)
@@ -912,10 +912,10 @@ typedef struct {
 uop_pp_table_t op_pp[] =
 {
   { DEF_FE(fe_mul,   mpfr_mul), OP_B(0x1.ffdadcp+1, UP(0x1.33a2475df0007p+0, 0x1.4113fc8ecc3f8p-54), UP(0x1.58aaa545d661p+0,  0x1.e51907ceacb49p-54), UP(0x1.9e2f2045233dp+0,  0x1.b3b3c8fe40e08p-54)) },
-  { DEF_FR(fr_mul,   mpfr_mul), OP_B(0x1.3e82e6p+2, UP(0x1.2ebcf4375c469p+0, 0x1.ffd4e75eccd61p-54), UP(0x1.771d5c40a1d91p+0, 0x1.fdd05c6ffb02p-54),  UP(0x1.bb99823d18d75p+0, 0x1.f7fbe914166d2p-53)) },
-  { DEF_FE(fe_div,   mpfr_div), OP_B(0x1.f6445ap+2, UP(0x1.f46ff175bf788p+0, 0x1.255fb8eee3b9ap-54), UP(0x1.03907994c26d3p+0, 0x1.f68b4e34ab4fap-54), UP(0x1.ed90b38de2a11p+0,-0x1.af5971ef3c02p-56))  },
+  { DEF_FR(fr_mul,   mpfr_mul), OP_B(0x1.3e8a0ep+2, UP(0x1.91aca484c6a1bp+0, 0x1.fc5eb7b00071ep-54), UP(0x1.135d3b80f7186p+0, 0x1.ff39f256fa70ap-54), UP(0x1.b00ebdcf898c8p+0, 0x1.b979fe24ab664p-52)) },
+  { DEF_FE(fe_div,   mpfr_div), OP_B(0x1.f87818p+2, UP(0x1.d73f715a31619p+0, 0x1.1cee9b6f1f9bep-54), UP(0x1.001415ef4aa03p-8, 0x1.ea684231dac1p-62),  UP(0x1.d71a7aeb0fe1dp+8,-0x1.7560e48ba6cep-48)) },
   { DEF_FR(fr_div,   mpfr_div), OP_B(0x1.bbb4bcp+2, UP(0x1.e36632b496997p+0, 0x1.338b14743e68p-54),  UP(0x1.004144deee7dfp-7, 0x1.ed0f1804acb91p-61), UP(0x1.e2eb1319c23dap+7,-0x1.0911f15d0370bp-45)) },
-  { DEF_FR(fr_div_a, mpfr_div), OP_B(0x1.8246d6p+2, UP(0x1.f67db1f73460bp+0, 0x1.3f6e78a6d70a8p-54), UP(0x1.015016a836f95p-2, 0x1.fb4801df60511p-56), UP(0x1.f3ed5e2cb47b4p+2,-0x1.0fbc6656c0e2ep-50)) },
+  { DEF_FR(fr_div_a, mpfr_div), OP_B(0x1.827c26p+2, UP(0x1.fc6f21bdabe66p+0, 0x1.27b4c3f52fc2p-54),  UP(0x1.00b840042116fp-4, 0x1.f98d0c1e25cb8p-58), UP(0x1.fb02395bb613p+4, -0x1.27c48565f5bc9p-48)) },
   { DEF_FE(fe_sub,   mpfr_sub), OP_B(0x1.4p+1,      UP(0x1.70c95f88e9523p+0, 0x1.fda6293f1b28ep-54), UP(0x1.c72b0e7b45b27p-2, 0x1.4567c8464fa93p-56), UP(0x1.fdfd37d42fcb3p-1, 0x1.58986e5b0e7dp-55)) },
   { DEF_FR(fr_sub,   mpfr_sub), OP_B(0x1p+13,       UP(0x1.0004f6d1bdea2p+0, 0x1.e849f520c9091p-54), UP(0x1.fffee0564a72ap-1, 0x1.afef4ffc80111p-55), UP(0x1.61a9a62c34p-14,   0x1.10524d2289008p-54)) },
   { DEF_FE(fe_osub,  mpfr_sub), OP_B(0x1.4p+1,      UP(0x1.088f69877af96p+0, 0x1.b30dbba2b9ff7p-54), UP(0x1.f3aa597ee7f76p-3, 0x1.94aab92331f02p-57), UP(0x1.94343caf3bf4fp-1, 0x1.00f0c8fca783p-55)) },
@@ -923,7 +923,7 @@ uop_pp_table_t op_pp[] =
   { DEF_FE(fe_add,   mpfr_add), OP_B(0x1p+1,        UP(0x1.1244ecc34f519p+0, 0x1.b92a3357d3067p-54), UP(0x1.3db617b2ecdcbp-1, 0x1.e980b7ce4e1dfp-55), UP(0x1.b11ff89cc5bffp+0, 0x1.5bd51e7df42b1p-55)) },
   { DEF_FR(fr_add,   mpfr_add), OP_B(0x1.7ep+1,     UP(0x1.2f63c832f7e45p+0, 0x1.ff63065548ca8p-54), UP(0x1.0c300bdba276p-6,  0x1.ed8f996e5a2bfp-60), UP(0x1.33948862666e2p+0, 0x1.01c6512ec08ccp-52)) },
   { DEF_FE(fe_add_s, mpfr_add), OP_B(0x1.7fp+1,     UP(0x1.acfcbd2d17b7ap+0, 0x1.fd1e2873d4f7fp-54), UP(0x1.ec4ef7bb0ec4p-7,  0x1.af3b010488701p-61), UP(0x1.b0d55b1c8dd53p+0, 0x1.f279d77824p-64)) },
-  { DEF_FE(fe_sub_s, mpfr_sub), OP_B(0x1p+11,       UP(0x1.00115f257f459p+0, 0x1.b30314678e636p-54), UP(0x1.ffeb8f2bd131dp-1, 0x1.649846149b5c7p-55), UP(0x1.b978f96acac03p-12,-0x1.21d457e95cp-67)) },
+  { DEF_FE(fe_sub_s, mpfr_sub), OP_B(0x1p+13,       UP(0x1.0004c2c4a9dfdp+0, 0x1.9bfd9ec593cd9p-54), UP(0x1.fff9f07aacd99p-1, 0x1.2434080706ed5p-55), UP(0x1.f2a1d4dcc309ep-14, 0x1.cd61082b7p-69)) }
 };
 
 void op_pp_tests(void)
