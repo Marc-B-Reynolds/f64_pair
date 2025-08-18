@@ -8,6 +8,7 @@
 
 #include "common.h"
 
+// quick spot checks only (mostly to run and display historic peaks)
 #define TRIALS 0x40000
 
 #ifndef TRIALS
@@ -15,7 +16,7 @@
 #endif
 
 // Since "fr" routines don't normalize the result "exact" and "computed" pairs can appear quite different.
-// (specifically displayed values aren't normalized either)
+// (specifically displayed values aren't normalized)
 
 
 
