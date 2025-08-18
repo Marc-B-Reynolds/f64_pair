@@ -58,3 +58,25 @@ static inline double gm_add3(double a, double b, double c)
   else
     return s.hi+(1.125*v.hi);
 }
+
+
+// "Computing Integer Powers in Floating-Point Arithmetic", Kornerup, Lefevre & Muller,
+// 2007. algorithm 5
+// [link](https://ens-lyon.hal.science/ensl-00150406v1)
+
+// requires: n > 0
+static inline fe_pair_t fe_pow_pn_d(double x, uint64_t n)
+{
+  // a classic "exponentiation by squaring" variant:
+  fe_pair_t r  = fe_pair(1,0);
+  fe_pair_t b  = fe_pair(x,0);
+  uint64_t  i  = n;
+
+  while(i > 1) {
+    if (i & 1) r = fe_mul(r,b);
+    b = fe_mul(b,b);
+    i >>= 1;
+  }
+
+  return fe_mul(r,b);
+}
