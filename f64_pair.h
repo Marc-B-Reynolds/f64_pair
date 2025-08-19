@@ -73,6 +73,7 @@
 [^7]: *Exact and Approximated error of the FMA*, Boldo & Muller, 2011, [link](https://inria.hal.science/inria-00429617)
 [^8]: *Emulation of the FMA and the correctly-rounded sum of three numbers in rounding-to-nearest floating-point arithmetic*, Graillat & Muller, 2025
        [link](https://inria.hal.science/hal-04575249v2)
+[^9]: *Emulation of 3Sum, 4Sum, the FMA and the FD2 instructions in rounded-to-nearest floating-point arithmetic*, Graillat & Muller, 2024 [link](https://hal.science/hal-04624238)
  */
 
 
@@ -143,6 +144,11 @@ extern fe_noinline fe_pair_t   fe_add_d_cr_slowpath(fe_pair_t, fe_pair_t, fe_pai
 extern fe_noinline fe_triple_t fe_triple_add_pd_slowpath(fe_pair_t, fe_pair_t, fe_pair_t);
 
 
+extern fe_pair_t fe_pow_pn_d(double x, uint64_t n);
+extern fe_pair_t fe_pow_n_d(double x, int64_t n);
+extern fe_pair_t fe_pow_pn(fe_pair_t x, uint64_t n);
+
+
 /// returns: $-x$
 static inline fe_pair_t fe_neg(fe_pair_t x) { return fe_pair(-x.hi, -x.lo); }
 static inline fr_pair_t fr_neg(fr_pair_t x) { return fr_pair(-x.hi, -x.lo); }
@@ -177,7 +183,20 @@ static inline fe_pair_t fe_copysign  (fe_pair_t x, fe_pair_t n) { return fe_pair
 static inline fr_pair_t fr_copysign  (fr_pair_t x, fr_pair_t n) { return fr_pair(copysign(x.hi,n.hi), copysign(x.lo,n.hi)); }
 
 
+// x times the sign of 'n' (no flush of -0 to +0)
+static inline fe_pair_t fe_mulsign_d(fe_pair_t x, double n)
+{
+  uint64_t sn = fe_to_bits(n) & UINT64_C(1) << 63;
+  double   h  = fe_from_bits(fe_to_bits(x.hi) ^ sn);
+  double   l  = fe_from_bits(fe_to_bits(x.lo) ^ sn);
+  
+  return fe_pair(h,l);
+}
 
+static inline fe_pair_t fe_mulsign(fe_pair_t x, fe_pair_t n)
+{
+  return fe_mulsign_d(x,n.hi);
+}
 
 // $ (hi,lo) = x-y $
 // rename variable to x,y
@@ -1271,7 +1290,162 @@ static inline double add3_bf_f64(double a, double b, double c)
 }
 
 
-#if defined(FE_PAIR_IMPLEMENTATION)
+#if !defined(FE_PAIR_IMPLEMENTATION)
+
+extern fe_pair_t fe_pow_n(fe_pair_t x, int64_t n);
+extern fr_pair_t fr_pow_n(fr_pair_t x, int64_t n);
+
+extern fe_pair_t fe_pow_pn_d(double x, uint64_t n);
+extern fr_pair_t fr_pow_pn_d(double x, uint64_t n);
+extern fe_pair_t fe_pow_pn(fe_pair_t x, uint64_t n);
+extern fr_pair_t fr_pow_pn(fr_pair_t x, uint64_t n);
+
+#else
+
+// integer powers support
+
+// * core squaring loop
+static inline fe_pair_t fe_pow_pn_i(fe_pair_t r, fe_pair_t b, uint64_t i)
+{
+  i >>= 1;                              // caller handles low bit
+  
+  while(i > 1) {
+    if (i & 1) r = fe_mul(r,b);
+    b = fe_sq_hq(b);
+    i >>= 1;
+  }
+
+  return fe_mul(r,b);
+}
+
+static inline fr_pair_t fr_pow_pn_i(fr_pair_t r, fr_pair_t b, uint64_t i)
+{
+  i >>= 1;                              // caller handles low bit
+  
+  while(i > 1) {
+    if (i & 1) r = fr_mul(r,b);
+    b = fr_sq(b);
+    i >>= 1;
+  }
+
+  return fr_mul(r,b);
+}
+
+
+// * positive (n > 0) wrappers for doubles & pairs
+// requires n > 0
+fe_pair_t fe_pow_pn_d(double x, uint64_t n)
+{
+  fe_pair_t r  = fe_pair(1,0);
+  fe_pair_t b  = fe_sq_d(x);
+  uint64_t  i  = n;
+
+  if (i & 1) r.hi = x;
+
+  return fe_pow_pn_i(r,b,i);
+}
+
+// requires n > 0
+fe_pair_t fe_pow_pn(fe_pair_t x, uint64_t n)
+{
+  fe_pair_t r  = fe_pair(1,0);
+  fe_pair_t b  = fe_sq_hq(x);
+  uint64_t  i  = n;
+
+  if (i & 1) r = x;
+  
+  return fe_pow_pn_i(r,b,i);
+}
+
+// requires n > 0
+fr_pair_t fr_pow_pn_d(double x, uint64_t n)
+{
+  fr_pair_t r  = fr_pair(1,0);
+  fr_pair_t b  = fr_sq_d(x);
+  uint64_t  i  = n;
+
+  if (i & 1) r.hi = x;
+
+  return fr_pow_pn_i(r,b,i);
+}
+
+// requires n > 0
+fr_pair_t fr_pow_pn(fr_pair_t x, uint64_t n)
+{
+  fr_pair_t r  = fr_pair(1,0);
+  fr_pair_t b  = fr_sq(x);
+  uint64_t  i  = n;
+
+  if (i & 1) r = x;
+  
+  return fr_pow_pn_i(r,b,i);
+}
+
+
+// * complete versions:
+//   overall structure assumes that n=0 is unlikely
+
+fe_pair_t fe_pow_n_d(double x, int64_t n)
+{
+  if (n > 0)
+    return fe_pow_pn_d(x,(uint64_t)n);
+
+  if (n < 0) {
+    fe_pair_t r = fe_pow_pn_d(x,(uint64_t)(-n));
+    
+    return fe_inv(r);
+  }
+
+  return fe_pair(1.0,0.0);
+}
+
+
+fr_pair_t fr_pow_n_d(double x, int64_t n)
+{
+  if (n > 0)
+    return fr_pow_pn_d(x,(uint64_t)n);
+
+  if (n < 0) {
+    fr_pair_t r = fr_pow_pn_d(x,(uint64_t)(-n));
+    
+    return fr_inv(r);
+  }
+
+  return fr_pair(1.0,0.0);
+}
+
+
+fe_pair_t fe_pow_n(fe_pair_t x, int64_t n)
+{
+  if (n > 0)
+    return fe_pow_pn(x,(uint64_t)n);
+
+  if (n < 0) {
+    fe_pair_t r = fe_pow_pn(x,(uint64_t)(-n));
+    
+    return fe_inv(r);
+  }
+
+  return fe_pair(1.0,0.0);
+}
+
+
+fr_pair_t fr_pow_n(fr_pair_t x, int64_t n)
+{
+  if (n > 0)
+    return fr_pow_pn(x,(uint64_t)n);
+
+  if (n < 0) {
+    fr_pair_t r = fr_pow_pn(x,(uint64_t)(-n));
+    
+    return fr_inv(r);
+  }
+
+  return fr_pair(1.0,0.0);
+}
+
+
+// slow-path routines
 
 static inline double add3_slowpath_core(fe_pair_t s, fe_pair_t v)
 {
@@ -1320,6 +1494,9 @@ fe_noinline fe_triple_t fe_triple_add_pd_slowpath(fe_pair_t s, fe_pair_t v, fe_p
   
   return (fe_triple_t){.h=z, .m=e.hi, .l=e.lo};
 }
+
+
+
 
 #endif
 
