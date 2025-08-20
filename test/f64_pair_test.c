@@ -6,6 +6,16 @@
 // ATM. In general none the testing is making effort to examine any
 // hard cases. So it's really just weak spot checking for the moment.
 
+// output is grouped into input categories (unary,binary op, etc. and
+// type of input double vs. pair).  For each it dumps out any historic
+// peak that's been noted per function. Then it runs through each
+// with `TRIALS` (see below) random inputs. If any new peak error
+// is discovered then the data for it is spewed out after the run has
+// completed (for table update).  Example:
+//   fe_pow63_d : OP_U(0x1.13f689ap+6, 0x1.313e5941fa9e6p+1, UP(0x1.fca11beb050dp+78,-0x1.f130cbeb437d7p+24))
+//
+// r = computed result, e = MPFR result
+
 #include "common.h"
 
 // quick spot checks only (mostly to run and display historic peaks)
@@ -17,8 +27,6 @@
 
 // Since "fr" routines don't normalize the result "exact" and "computed" pairs can appear quite different.
 // (specifically displayed values aren't normalized)
-
-
 
 // globals 
 mpfr_t mp_r0;
@@ -118,23 +126,48 @@ typedef struct {
 } uop_d_table_t;
 
 
+// for spot checking some integer powers
+#define DEF_POW_N(N) \
+  static inline fe_pair_t fe_pow##N##_d(double x) { return fe_pow_n_d(x, N); }  \
+  static inline fr_pair_t fr_pow##N##_d(double x) { return fr_pow_n_d(x, N); }  \
+  static inline int       mp_pow##N##_d(mpfr_t r, const mpfr_t x, mpfr_rnd_t rnd) { return mpfr_pown(r,x,N,rnd); }
+
+DEF_POW_N(3);
+DEF_POW_N(15);
+DEF_POW_N(31);
+DEF_POW_N(63);
+
 
 uop_d_table_t op_d[] =
 {
-//{ DEF_FE(fe_rsqrt_d,  mpfr_rec_sqrt) }  <- the OP_U(...) part can be deleted like this ("tracked" peak error info across runs)
+  // example entry w/o historic peek:
+  //{ DEF_FE(fe_rsqrt_d,  mpfr_rec_sqrt) }  <- the OP_U(...) part can be deleted like this ("tracked" peak error info across runs)
+
+#if 0
+  // spot-check some integer powers
+  { DEF_FE(fe_pow3_d,   mp_pow3_d),  OP_U(0x1.7fffccp+1,   0x1.8bc82519000bap-2, UP(0x1.d8ff022c82a2p-5,   0x1.1c5727d3e182p-60)) },
+  { DEF_FR(fr_pow3_d,   mp_pow3_d),  OP_U(0x1.7ffffcp+1,   0x1.6dfbdb7b1174p-3,  UP(0x1.7600e894e396p-8,   0x1.03b4e7549c71ap-60)) },
+  { DEF_FE(fe_pow15_d,  mp_pow15_d), OP_U(0x1.028fb78p+4,  0x1.71489698f8094p-1, UP(0x1.e7566c4f23435p-8,  0x1.9605fc03f64dep-62)) },
+  { DEF_FR(fr_pow15_d,  mp_pow15_d), OP_U(0x1.09eeb2dp+7,  0x1.0afa6b7745b0cp-3, UP(0x1.e097d6e3be372p-45,-0x1.43c2885d98487p-94)) },
+  { DEF_FE(fe_pow31_d,  mp_pow31_d), OP_U(0x1.f976e4p+4,   0x1.3211af9836549p-1, UP(0x1.fc272cf066c3dp-24, 0x1.7b6f7fea0248ap-79)) },
+  { DEF_FR(fr_pow31_d,  mp_pow31_d), OP_U(0x1.2b48c844p+9, 0x1.6e1127547ed97p-1, UP(0x1.fe2fda46250bep-16, 0x1.87c0c6fca818dp-64)) },
+  { DEF_FE(fe_pow63_d,  mp_pow63_d), OP_U(0x1.13f689ap+6,  0x1.313e5941fa9e6p+1, UP(0x1.fca11beb050dp+78, -0x1.f130cbeb437d7p+24)) },
+  { DEF_FR(fr_pow63_d,  mp_pow63_d), OP_U(0x1.4156df6p+11, 0x1.6c031b12144ebp+1, UP(0x1.fde84da051042p+94, 0x1.a48abf9a9fc9ep+47)) },
+#endif
   { DEF_FE(fe_rsqrt_d,  mpfr_rec_sqrt), OP_U(0x1.573b74p+2, 0x1.faea8d04b1668p-2, UP(0x1.6bd97ca99753cp+0, 0x1.acd1ede5c7de7p-53)) },
   { DEF_FE(fe_rsqrt_dh, mpfr_rec_sqrt), OP_U(0x1.a56438p+1, 0x1.9c1b95807da1ep-2, UP(0x1.9389c166b0628p+0, 0x1.96f00fc997be8p-53)) },
   { DEF_FE(fe_inv_d,    mpfr_inv),      OP_U(0x1p-1,        0x1.56f581ba03a0ap-2, UP(0x1.7e2e0633c775ap+1, 0x1.d6872e3e1af22p-53)) },
   { DEF_FE(fe_inv_dn,   mpfr_inv),      OP_U(0x1.7f683p+0,  0x1.ff5b5fd4f00d4p-1, UP(0x1.00526a957415dp+0,-0x1.ffcdfa3432c6ep-54)) },
   { DEF_FE(fe_inv_dh,   mpfr_inv),      OP_U(0x1.34c4ep+0,  0x1.6a324624fbf52p-1, UP(0x1.69e18b2b0b124p+0, 0x1.fff6dd32b13f2p-54)) },
   { DEF_FR(fr_sqrt_d,   mpfr_sqrt),     OP_U(0x1.ff159p-1,  0x1.001b080141b3p-2,  UP(0x1.000d83a54f9b3p-1,-0x1.ff523f8237456p-55)) }
+
 };
 
 
 // test unary f(double) → pair
 void op_d_tests(void)
 {
-  printf(SGR_BOLD SGR_RGB(200,200,255) "\nf(double) → pair : x ∈ [0,1) \n" SGR_RESET);
+  printf(SGR_BOLD SGR_RGB(200,200,255) "\nf(double) → pair : x ∈ [1,2) \n" SGR_RESET);
   
   report_table_t table = {
     .col = {
@@ -199,7 +232,7 @@ void op_d_tests(void)
     int       (*mp)(mpfr_t,const mpfr_t,mpfr_rnd_t) = t->mp;
     
     for(int i=0; i<TRIALS; i++) {
-      double    a = prng_f64();
+      double    a = 2.0*prng_f64()+1.0;
       fe_pair_t r = f(a);
       
       // perform with MPFR
@@ -237,9 +270,18 @@ void op_d_tests(void)
     }
   }
 
-  
-  
   report_table_end(stdout, &table);
+
+  // dump any update peak values
+  for(size_t i=0; i<LENGTHOF(op_d); i++) {
+    uop_d_table_t* t = op_d + i;
+    if (t->updated) {
+      printf("%13s : OP_U(%a, %a, UP(%a,% a))\n", t->name,
+             t->max_ulp,
+             t->max_x,
+             t->max_r.hi,t->max_r.lo);
+    }
+  }
 }
 
 
@@ -1073,12 +1115,13 @@ int main(void)
   mpfr_init2(mp_t,  128);
   
 #if 0
-  //op_d_tests();
-  op_p_tests();
+  // short-circuit to spot checking of new methods
+  op_d_tests();
+  //op_p_tests();
   //op_dd_tests();
   //op_dp_tests();
   //op_pd_tests();
-  op_pp_tests();
+  //op_pp_tests();
 #else  
   op_d_tests();
   op_p_tests();
