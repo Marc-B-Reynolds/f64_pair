@@ -76,6 +76,7 @@
 [^9]: *Emulation of 3Sum, 4Sum, the FMA and the FD2 instructions in rounded-to-nearest floating-point arithmetic*, Graillat & Muller, 2024 [link](https://hal.science/hal-04624238)
  */
 
+// no bit-and-bobs from [9] are implemented and there's a couple of interesting things
 
 
 static inline uint64_t fe_to_bits(double x)     { uint64_t u; memcpy(&u, &x, 8); return u; }
@@ -1292,6 +1293,9 @@ static inline double add3_bf_f64(double a, double b, double c)
 
 #if !defined(FE_PAIR_IMPLEMENTATION)
 
+extern fe_pair_t fe_pow_n_d(double x, int64_t n);
+extern fr_pair_t fr_pow_n_d(double x, int64_t n);
+
 extern fe_pair_t fe_pow_n(fe_pair_t x, int64_t n);
 extern fr_pair_t fr_pow_n(fr_pair_t x, int64_t n);
 
@@ -1555,8 +1559,10 @@ static inline double add3_f64(double a, double b, double c)
 {
   // modified version of Graillat & Muller 2025
   // algorithm 8 (EmulADD3)
+  // [9] has a different method (algorithm 8)
   return fe_result_add_d(fe_two_sum(a,b),c);
 }
+
 
 // 3 word expansion of: ab+c
 static inline fe_triple_t fe_triple_fma_ddd(double a, double b, double c)
@@ -1659,6 +1665,10 @@ static inline bool fe_eq(fe_pair_t x, fe_pair_t y)
 // (etc) to minimize performance impact and working with known targets
 // of error at each step.  IMHO black-box "increased precision" is better
 // handled by some multi-precision library (like MPFR).
+// Anyway half thinking there might be the narrow case of not wanting to
+// pull in a MP lib and/or pay the RT cost of the evalulation for some
+// empirical testing and calling some pair implementation good enough as
+// the "reference".
 
 #define dd_def_uop(x,OP)                   \
     double: _Generic((x),                  \
