@@ -7,7 +7,7 @@ ifeq ($(origin CC),default)
   CC = clang
 endif
 
-IDIRS  = -I../.. -I.. -I../Stand-alone-junk/src/
+IDIRS  = -I../.. -I..
 CFLAGS = -O3 ${IDIRS} -march=native -ffp-contract=off -fno-math-errno -fno-trapping-math -Wall -Wextra -Wconversion -Wno-unused-function
 LDLIBS = -lm -lmpfr
 
