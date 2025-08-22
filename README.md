@@ -4,7 +4,7 @@ This is *single header file* that implements a set of double-double primitive op
 **IMPORTANT**:  any relaxation of floating-point rules (via command line options) will break a
 reasonable number of functions. This is includes enabling so-call floating point contractions
 (automatic usage of FMAs) which is typically enabled by default. Exceptions to this are 
-*math-errno* which should have stop being a thing decades ago and *trapping math*.
+*math-errno* which should have stopped being a thing decades ago and *trapping math*.
 
 Spitball overview:
 * REFERENCES! (probably the most useful bit)
