@@ -98,6 +98,11 @@ static inline fr_pair_t fr_pair(double hi, double lo)
   return (fr_pair_t){.hi=hi, .lo=lo};
 }
 
+static inline fe_triple_t fe_triple(double h, double m, double l)
+{
+  return (fe_triple_t){.h=h, .m=m, .l=l};
+}
+
 static inline fe_pair_t fe_set_d(double x) { return fe_pair(x,0.0); }
 static inline fr_pair_t fr_set_d(double x) { return fr_pair(x,0.0); }
 
@@ -293,8 +298,7 @@ static inline fe_pair_t fe_d_add(double x, fe_pair_t y) { return fe_add_d(y,x); 
 
 static inline fe_pair_t fe_add_d_cr(fe_pair_t x, double c)
 {
-  // modified version of Graillat & Muller 2025
-  // algorithm 7.
+  // modified version of [8] algorithm 7.
   // first bullet point after theorem 3.11
   // uiCA: 37.00  (following fast-path)
   // 16 adds (for fast-path)
@@ -353,8 +357,7 @@ static inline fe_pair_t fe_roadd_d_cr(fe_pair_t x, double c)
 // 
 static inline fe_triple_t fe_triple_add_pd(fe_pair_t x, double c)
 {
-  // modified version of Graillat & Muller 2025
-  // algorithm 7.
+  // modified version of [8] algorithm 7.
   // second bullet point after theorem 3.11
   // uiCA: 53.00  (following fast-path)
   // 18 adds (for fast-path)
@@ -750,10 +753,6 @@ static inline fr_pair_t fr_mul(fr_pair_t x, fr_pair_t y)
 //
 // this choice drops operations vs mul and tightens the error bound.
 
-// double input is error free TwoMulFMA
-static inline fe_pair_t fe_sq_d(double x) { return fe_two_mul(x,x); }
-static inline fr_pair_t fr_sq_d(double x) { return fr_two_mul(x,x); }
-
 static inline fe_pair_t fe_sq(fe_pair_t x)
 {
   // 2 fma, 1 mul, 6 add
@@ -789,6 +788,10 @@ static inline fe_pair_t fe_sq_hq(fe_pair_t x)
   // add in the a² term
   return fe_oadd_s(a2,ab);              // 8 adds
 }
+
+// double input is error free TwoMulFMA
+static inline fe_pair_t fe_sq_d(double x) { return fe_two_mul(x,x); }
+static inline fr_pair_t fr_sq_d(double x) { return fr_two_mul(x,x); }
 
 
 #if 0
@@ -1508,8 +1511,7 @@ fe_noinline fe_triple_t fe_triple_add_pd_slowpath(fe_pair_t s, fe_pair_t v, fe_p
 // RN(x+c)  a.k.a correctly rounded.
 static inline double fe_result_add_d(fe_pair_t x, double c)
 {
-  // modified version of Graillat & Muller 2025
-  // algorithm 6 (CR-DWPlusFP)
+  // modified version of [8] algorithm 6 (CR-DWPlusFP)
   fe_pair_t s = fe_two_sum(x.hi,c);     // 6 adds
   fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6 adds
   uint64_t  t = fe_to_bits(x.hi) << 12;
@@ -1557,8 +1559,7 @@ static inline double fe_result_roadd_d(fe_pair_t x, double c)
 // RN(a+b+c)  a.k.a correctly rounded.
 static inline double add3_f64(double a, double b, double c)
 {
-  // modified version of Graillat & Muller 2025
-  // algorithm 8 (EmulADD3)
+  // modified version of [8] algorithm 8 (EmulADD3)
   // [9] has a different method (algorithm 8)
   return fe_result_add_d(fe_two_sum(a,b),c);
 }
@@ -1586,8 +1587,8 @@ static inline fe_triple_t fe_triple_fma_ddd(double a, double b, double c)
   z.m  = v.hi;
   z.l  = v.lo;
 #else
-  // Graillat & Muller 2025. should have higher throughput.
-  // algorithm 12 (Faster-FMA-with-error)
+  // [8] algorithm 12 (Faster-FMA-with-error)
+  // should have higher throughput.
   // uiCA: 50.25
   fe_triple_t z;
   fe_pair_t   x, alpha, beta, r;
