@@ -5,7 +5,7 @@
 /// This header implements two base methods of extended precision:
 ///
 /// * fe_{op}: standard *"floating point expansion"* of two elements (aka *double-doubles* or *unevaluated pair*)
-/// * fr_{op}: relaxed version of *double-doubles* by Lange & Rump
+/// * fr_{op}: relaxed version of *double-doubles* by Lange & Rump (CPair)
 /// <br>
 /// Data structures for representing the order pairs `(hi,lo)`.
 /// * `fe_pair_t`
@@ -15,7 +15,7 @@
 /// * should note when identical to UP & see how wrappered
 ///   forwarding works out WRT producing same code.
 
-/// add notes about how compiler options are modified by including this file and why
+/// add notes about how compiler options are modified by including this file and why:
 /// * disables all *fast-math* options
 /// * disables floating-point contractions (break some of the methods)
 /// * disables *math errno* (you almost certainly never want that enabled)
@@ -43,7 +43,7 @@
 #pragma GCC optimize ("fp-contract=off")
 #pragma GCC optimize ("no-fast-math")
 #pragma GCC optimize ("no-math-errno")
--#pragma GCC optimize ("no-trapping-math")
+#pragma GCC optimize ("no-trapping-math")
 #else
 #warning "this is sad"
 #endif
@@ -296,6 +296,17 @@ static inline fe_pair_t fe_add_d(fe_pair_t x, double y)
 static inline fe_pair_t fe_d_add(double x, fe_pair_t y) { return fe_add_d(y,x); }
 
 
+// returns 0 if x=0 or is a power of two & non-zero otherwise
+// (discard sign and exponent bits)
+static inline uint64_t fe_not_pot(double x) { return fe_to_bits(x) << 12; }
+
+
+// returns 0 if x=0, x=2^n or x=3 2^n & non-zero otherwise
+// (discard sign, exponent and first explict signficand bits)
+// computes [8] algorithm 5 (IsNot1or3TimesPowerOf2)
+static inline uint64_t fe_not_13xpot(double x) { return fe_to_bits(x) << 13; }
+
+
 static inline fe_pair_t fe_add_d_cr(fe_pair_t x, double c)
 {
   // modified version of [8] algorithm 7.
@@ -305,10 +316,9 @@ static inline fe_pair_t fe_add_d_cr(fe_pair_t x, double c)
   fe_pair_t s = fe_two_sum(x.hi,c);     // 6 adds
   fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6 adds
   fe_pair_t w = fe_fast_sum(s.hi,v.hi); // 3 adds
-  uint64_t  t = fe_to_bits(v.hi) << 12; //   algorithm 5 as bit manipulation
 
   // statistically always taken
-  if (fe_likely(t))
+  if (fe_likely(fe_not_13xpot(v.hi)))
     return fe_pair(w.hi,w.lo+v.lo);
 
   return fe_add_d_cr_slowpath(s,v,w);
@@ -324,10 +334,9 @@ static inline fe_pair_t fe_oadd_d_cr(fe_pair_t x, double c)
   fe_pair_t s = fe_fast_sum(x.hi,c);    // 3 adds
   fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6 adds
   fe_pair_t w = fe_fast_sum(s.hi,v.hi); // 3 adds
-  uint64_t  t = fe_to_bits(v.hi) << 12; //   algorithm 5 as bit manipulation
 
   // statistically always taken
-  if (fe_likely(t))
+  if (fe_likely(fe_not_13xpot(v.hi)))
     return fe_pair(w.hi,w.lo+v.lo);
 
   return fe_add_d_cr_slowpath(s,v,w);
@@ -343,10 +352,9 @@ static inline fe_pair_t fe_roadd_d_cr(fe_pair_t x, double c)
   fe_pair_t s = fe_fast_sum(c,x.hi);    // 3 adds
   fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6 adds
   fe_pair_t w = fe_fast_sum(s.hi,v.hi); // 3 adds
-  uint64_t  t = fe_to_bits(v.hi) << 12; //   algorithm 5 as bit manipulation
 
   // statistically always taken
-  if (fe_likely(t))
+  if (fe_likely(fe_not_13xpot(v.hi)))
     return fe_pair(w.hi,w.lo+v.lo);
 
   return fe_add_d_cr_slowpath(s,v,w);
@@ -364,10 +372,9 @@ static inline fe_triple_t fe_triple_add_pd(fe_pair_t x, double c)
   fe_pair_t s = fe_two_sum(x.hi,c);     // 6
   fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6
   fe_pair_t w = fe_fast_sum(s.hi,v.hi); // 3
-  uint64_t  t = fe_to_bits(v.hi) << 12; //   algorithm 5 as bit manipulation
 
   // statistically always taken
-  if (fe_likely(t)) {
+  if (fe_likely(fe_not_13xpot(v.hi))) {
     fe_pair_t e = fe_fast_sum(w.lo,v.lo); // 3
     
     return (fe_triple_t){.h=w.hi, .m=e.hi, .l=e.lo};
@@ -384,10 +391,9 @@ static inline fe_triple_t fe_triple_oadd_pd(fe_pair_t x, double c)
   fe_pair_t s = fe_fast_sum(x.hi,c);    // 3
   fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6
   fe_pair_t w = fe_fast_sum(s.hi,v.hi); // 3
-  uint64_t  t = fe_to_bits(v.hi) << 12; //   algorithm 5 as bit manipulation
 
   // statistically always taken
-  if (fe_likely(t)) {
+  if (fe_likely(fe_not_13xpot(v.hi))) {
     fe_pair_t e = fe_fast_sum(w.lo,v.lo); // 3
     
     return (fe_triple_t){.h=w.hi, .m=e.hi, .l=e.lo};
@@ -1307,6 +1313,10 @@ extern fr_pair_t fr_pow_pn_d(double x, uint64_t n);
 extern fe_pair_t fe_pow_pn(fe_pair_t x, uint64_t n);
 extern fr_pair_t fr_pow_pn(fr_pair_t x, uint64_t n);
 
+extern fe_triple_t fe_triple_add3_ddd(double a, double b, double c);
+extern fe_pair_t   fe_add3_ddd(double a, double b, double c);
+extern double      fe_result_add(fe_pair_t x, fe_pair_t y);
+
 #else
 
 // integer powers support
@@ -1503,7 +1513,147 @@ fe_noinline fe_triple_t fe_triple_add_pd_slowpath(fe_pair_t s, fe_pair_t v, fe_p
 }
 
 
+fe_noinline fe_triple_t fe_triple_add3_ddd_slowpath(fe_pair_t z, double w, double σ, double t)
+{
+  // [9] algorithm 9 (Sum3-with-error) : slow-path part
+  double wp = 1.5*w;
+  double σ2 = z.hi+wp;
+  double Σ;
 
+  // restructure with: Σ = z.hi above. slow-path is almost
+  // never so doesn't really matter. 
+  if (fe_unlikely(σ2 == z.hi)) {
+    Σ = z.hi;
+  }
+  else {
+    if (fe_unlikely(t==0.0)) {
+      Σ = σ;
+    }
+    else {
+      double g = t*w;
+      if (g < 0)
+        Σ = z.hi;
+      else
+        Σ = σ2;
+    }
+  }
+
+  double    α = Σ - z.hi;
+  double    η = w - α;
+  fe_pair_t r = fe_fast_sum(η,t);
+  
+  return fe_triple(Σ,r.hi,r.lo);
+}
+
+
+fe_noinline fe_pair_t fe_add3_ddd_slowpath(fe_pair_t z, double w, double σ, double t)
+{
+  // [9] algorithm 9 (Sum3-with-error) : slow-path part (commented replacement)
+  double wp = 1.5*w;
+  double σ2 = z.hi+wp;
+  double Σ;
+
+  // restructure with: Σ = z.hi above. slow-path is almost
+  // never so doesn't really matter. 
+
+  if (fe_unlikely(σ2 == z.hi)) {
+    Σ = z.hi;
+  }
+  else {
+    if (fe_unlikely(t==0.0)) {
+      Σ = σ;
+    }
+    else {
+      double g = t*w;
+      if (g < 0)
+        Σ = z.hi;
+      else
+        Σ = σ2;
+    }
+  }
+
+  double α = Σ - z.hi;
+  double η = w - α;
+  
+  return fe_pair(Σ, η+t);
+}
+
+
+fe_triple_t fe_triple_add3_ddd(double a, double b, double c)
+{
+  // [9] algorithm 9 (Sum3-with-error)
+  // 30 adds along fast-path
+  fe_pair_t x = fe_two_sum(a,b);        // 6 adds
+  fe_pair_t s = fe_two_sum(x.hi,c);     // 6 adds
+  fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6 adds
+  fe_pair_t z = fe_fast_sum(s.hi,v.hi); // 3 adds
+  double    w = v.lo + z.lo;
+  double    σ = z.hi + w;
+  double    δ = w - z.lo;
+  double    t = v.lo - δ;
+  uint64_t  T = fe_not_pot(v.hi);       // !IsPowerOf2 as bit manipulation (discard sign & exp)
+
+  if (fe_likely(T != 0)) {
+    double    α = σ - z.hi;
+    double    η = w - α;
+    fe_pair_t r = fe_fast_sum(η,t);
+    return fe_triple(σ,r.hi,r.lo);
+  }
+
+  return fe_triple_add3_ddd_slowpath(z,w,σ,t);
+}
+
+
+fe_pair_t fe_add3_ddd(double a, double b, double c)
+{
+  // [9] algorithm 9 (Sum3-with-error) : commented replacement
+  // 28 adds along fast-path
+  fe_pair_t x = fe_two_sum(a,b);        // 6 adds
+  fe_pair_t s = fe_two_sum(x.hi,c);     // 6 adds
+  fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6 adds
+  fe_pair_t z = fe_fast_sum(s.hi,v.hi); // 3 adds
+  double    w = v.lo + z.lo;
+  double    σ = z.hi + w;
+  double    δ = w - z.lo;
+  double    t = v.lo - δ;
+  uint64_t  T = fe_not_pot(v.hi);       // !IsPowerOf2 as bit manipulation (discard sign & exp)
+
+  if (fe_likely(T != 0)) {
+    double α = σ - z.hi;
+    double η = w - α;
+    return fe_pair(σ, η+t);
+  }
+
+  return fe_add3_ddd_slowpath(z,w,σ,t);
+}
+
+
+// RN(x+y) : error bound = u (correctly rounded)
+double fe_result_add(fe_pair_t x, fe_pair_t y)
+{
+  // [9] algorithm 11 (FPNearestSumDW)
+  // 55 adds (following fast-path)
+  fe_pair_t s = fe_two_sum(x.hi, y.hi);        // 6 adds
+  fe_pair_t t = fe_two_sum(x.lo, y.lo);        // 6 adds
+  fe_pair_t γ = fe_two_sum(s.lo, t.hi);        // 6 adds
+  fe_pair_t v = fe_fast_sum(s.hi, γ.hi);       // 3 adds
+  fe_pair_t w = fe_fast_sum(v.lo, t.lo);       // 3 adds
+  fe_pair_t z = fe_fast_sum(v.hi, w.hi);       // 3 adds
+  fe_pair_t q = fe_add3_ddd(z.lo, w.lo, γ.lo); // 28 adds (along fast-path)
+  uint64_t  T = fe_not_pot(q.hi);
+  
+  if (fe_likely(T != 0)) return z.hi;
+
+  // slow-path: 
+  double ρ = 1.5*q.hi;
+  double σ = z.hi + ρ;
+
+  if (fe_unlikely(σ    == z.hi)) return z.hi;
+  if (fe_unlikely(q.lo == 0.0))  return z.hi + q.hi;
+  if (q.hi * q.lo <= 0)          return z.hi;
+
+  return σ;
+}
 
 #endif
 
@@ -1514,13 +1664,8 @@ static inline double fe_result_add_d(fe_pair_t x, double c)
   // modified version of [8] algorithm 6 (CR-DWPlusFP)
   fe_pair_t s = fe_two_sum(x.hi,c);     // 6 adds
   fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6 adds
-  uint64_t  t = fe_to_bits(x.hi) << 12;
 
-  // t computes algorithm 5 (IsNot1or3TimesPowerOf2)
-  // using bit manipulation. discards sign bit,
-  // exp and top explict bit.
-
-  if (fe_likely(t))
+  if (fe_likely(fe_not_13xpot(x.hi)))
     return s.hi+v.hi;
 
   // expected rate to reach here: 2^-51
@@ -1534,9 +1679,8 @@ static inline double fe_result_oadd_d(fe_pair_t x, double c)
   // modified version of 'fe_result_add_d'
   fe_pair_t s = fe_fast_sum(x.hi,c);    // 3 adds
   fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6 adds
-  uint64_t  t = fe_to_bits(x.hi) << 12;
 
-  if (fe_likely(t))
+  if (fe_likely(fe_not_13xpot(x.hi)))
     return s.hi+v.hi;
 
   return add3_slowpath_f64(s,v);
@@ -1548,9 +1692,8 @@ static inline double fe_result_roadd_d(fe_pair_t x, double c)
   // modified version of 'fe_result_add_d'
   fe_pair_t s = fe_fast_sum(c,x.hi);    // 3 adds
   fe_pair_t v = fe_two_sum(x.lo,s.lo);  // 6 adds
-  uint64_t  t = fe_to_bits(x.hi) << 12;
 
-  if (fe_likely(t))
+  if (fe_likely(fe_not_13xpot(x.hi)))
     return s.hi+v.hi;
 
   return add3_slowpath_f64(s,v);
@@ -1603,11 +1746,63 @@ static inline fe_triple_t fe_triple_fma_ddd(double a, double b, double c)
   r     = fe_fast_sum(gamma,alpha.lo);  // 3 adds
   z.m = r.hi;
   z.l = r.lo;
-  return z;  
 #endif  
 
   return z;
 }
+
+
+// RN(a+b+c+d) : error bound = u (correctly rounded)
+static inline double sum4_cr_f64(double a, double b, double c, double d)
+{
+  // [9] algorithm 12 (Sum4)
+  // 67 adds (following fast-path)
+  fe_pair_t x = fe_two_sum(a,b);
+  fe_pair_t y = fe_two_sum(c,d);
+
+  return fe_result_add(x,y);
+}
+
+// ab+cd
+// error bound = 3u & 2u if sign(ab)==sign(cd)  (Kahan)
+static inline double mma_f64(double a, double b, double c, double d)
+{
+  double t = c*d;
+  double e = fma(c,d,-t);
+  double f = fma(a,b, t);
+  return f+e;
+}
+
+// RN(ab+cd) : error bound = u (correctly rounded)
+static inline double mma_cr_f64(double a, double b, double c, double d)
+{
+  // [9] algorithm 13 (FD2)
+  fe_pair_t x = fe_two_mul(a,b);
+  fe_pair_t y = fe_two_mul(c,d);
+
+  return fe_result_add(x,y);
+}
+
+// ab-cd
+// error bound = 3u & 2u if sign(ab)!=sign(cd)  (Kahan)
+static inline double mms_f64(double a, double b, double c, double d)
+{
+  double t = c*d;
+  double e = fma(c,d,-t);
+  double f = fma(a,b,-t);
+  return f-e;
+}
+
+// RN(ab-cd) : error bound = u (correctly rounded)
+static inline double mms_cr_f64(double a, double b, double c, double d)
+{
+  // [9] algorithm 13 (FD2)
+  fe_pair_t x = fe_two_mul(a,b);
+  fe_pair_t y = fe_two_mul(c,d);
+
+  return fe_result_add(x,fe_neg(y));
+}
+
 
 /// ## Extended precision constants
 ///
