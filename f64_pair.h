@@ -76,9 +76,6 @@
 [^9]: *Emulation of 3Sum, 4Sum, the FMA and the FD2 instructions in rounded-to-nearest floating-point arithmetic*, Graillat & Muller, 2024 [link](https://hal.science/hal-04624238)
  */
 
-// no bit-and-bobs from [9] are implemented and there's a couple of interesting things
-
-
 static inline uint64_t fe_to_bits(double x)     { uint64_t u; memcpy(&u, &x, 8); return u; }
 static inline double   fe_from_bits(uint64_t x) { double   f; memcpy(&f, &x, 8); return f; }
 
@@ -739,7 +736,7 @@ static inline fe_pair_t fe_mul(fe_pair_t x, fe_pair_t y)
 static inline fr_pair_t fr_mul(fr_pair_t x, fr_pair_t y)
 {
   // CPairMul: 2 fma, 3 mul, 2 add
-  // (1) what about Kahn's mma here as variant? or use FMA?
+  // (1) what about Kahan's mma here as variant? or use FMA?
   // NOTE: This is the correct implementation of CPairMul.
   // uiCA: 21.60
   // ulp: ~4.85
