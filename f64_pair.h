@@ -32,6 +32,10 @@
 
 #pragma once
 
+#include <stdint.h>
+#include <string.h>
+#include <math.h>
+
 // duct-tape and super-glue. the good answer is properly set compiler options instead
 // of attempting to modifiy them in source. it'd be nice if compilers provided the
 // features needed to go this route but...
@@ -1839,13 +1843,13 @@ static inline fr_pair_t fr_zero(void)      { return fr_set_d( 0.0);  }
 static inline fe_pair_t fe_neg_zero(void)  { return fe_set_d(-0.0);  }
 static inline fr_pair_t fr_neg_zero(void)  { return fr_set_d(-0.0);  }
 
-static inline bool fe_eq_zero(fe_pair_t x) { return x.hi      == 0.0; }   // if hi is zero then illegal for lo to be non-zero
-static inline bool fr_eq_zero(fr_pair_t x) { return x.hi+x.lo == 0.0; }
-static inline bool fe_gt_zero(fe_pair_t x) { return x.hi      >  0.0; }
-static inline bool fr_gt_zero(fr_pair_t x) { return x.hi+x.lo >  0.0; }
+static inline _Bool fe_eq_zero(fe_pair_t x) { return x.hi      == 0.0; }   // if hi is zero then illegal for lo to be non-zero
+static inline _Bool fr_eq_zero(fr_pair_t x) { return x.hi+x.lo == 0.0; }
+static inline _Bool fe_gt_zero(fe_pair_t x) { return x.hi      >  0.0; }
+static inline _Bool fr_gt_zero(fr_pair_t x) { return x.hi+x.lo >  0.0; }
 
 
-static inline bool fe_eq(fe_pair_t x, fe_pair_t y)
+static inline _Bool fe_eq(fe_pair_t x, fe_pair_t y)
 {
   return (x.hi == y.hi) && (x.lo == y.lo);
 }

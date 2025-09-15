@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <math.h>
+//#include <stdint.h>
+//#include <math.h>
 #include <stdio.h>
-#include <stdbool.h>
-#include <string.h>
+//#include <stdbool.h>
+//#include <string.h>
 
 #define FE_PAIR_IMPLEMENTATION
 #include "../f64_pair.h"

@@ -121,7 +121,7 @@ typedef struct {
   double    max_x;
   fe_pair_t max_r;
   fe_pair_t max_e;
-  bool      updated;
+  _Bool     updated;
   
 } uop_d_table_t;
 
@@ -266,7 +266,7 @@ void op_d_tests(void)
       t->max_x   = max_x;
       t->max_r   = max_r;
       t->max_e   = max_e;
-      t->updated = true;
+      t->updated = (_Bool)1;
     }
   }
 
@@ -302,7 +302,7 @@ typedef struct {
   fe_pair_t max_x;
   fe_pair_t max_r;
   fe_pair_t max_e;
-  bool      updated;
+  _Bool     updated;
   
 } uop_table_t;
 
@@ -440,7 +440,7 @@ void op_p_tests(void)
       t->max_x   = max_a;
       t->max_r   = max_r;
       t->max_e   = max_e;
-      t->updated = true;
+      t->updated = (_Bool)1;
     }
   }
   
@@ -482,7 +482,7 @@ typedef struct {
   double    max_b;
   fe_pair_t max_r;
   fe_pair_t max_e;
-  bool      updated;
+  _Bool     updated;
   
 } uop_dd_table_t;
 
@@ -597,7 +597,7 @@ void op_dd_tests(void)
       t->max_b   = max_b;
       t->max_r   = max_r;
       t->max_e   = max_e;
-      t->updated = true;
+      t->updated = (_Bool)1;
     }    
   }
   
@@ -634,7 +634,7 @@ typedef struct {
   fe_pair_t max_b;
   fe_pair_t max_r;
   fe_pair_t max_e;
-  bool      updated;
+  _Bool     updated;
   
 } uop_dp_table_t;
 
@@ -750,7 +750,7 @@ void op_dp_tests(void)
       t->max_b   = max_b;
       t->max_r   = max_r;
       t->max_e   = max_e;
-      t->updated = true;
+      t->updated = (_Bool)1;
     }
   }
   
@@ -787,7 +787,7 @@ typedef struct {
   double    max_b;
   fe_pair_t max_r;
   fe_pair_t max_e;
-  bool      updated;
+  _Bool     updated;
   
 } uop_pd_table_t;
 
@@ -909,7 +909,7 @@ void op_pd_tests(void)
       t->max_b   = max_b;
       t->max_r   = max_r;
       t->max_e   = max_e;
-      t->updated = true;
+      t->updated = (_Bool)1;
     }
   }
   
@@ -948,7 +948,7 @@ typedef struct {
   fe_pair_t max_r;
   fe_pair_t max_e;
 
-  bool      updated;
+  _Bool     updated;
   
 } uop_pp_table_t;
 
@@ -1077,7 +1077,7 @@ void op_pp_tests(void)
       op_pp[i].max_b   = max_b;
       op_pp[i].max_r   = max_r;
       op_pp[i].max_e   = max_e;
-      op_pp[i].updated = true;
+      op_pp[i].updated = (_Bool)1;
     }
   }
   
