@@ -108,20 +108,6 @@ static inline fe_pair_t fe_set_d(double x) { return fe_pair(x,0.0); }
 static inline fr_pair_t fr_set_d(double x) { return fr_pair(x,0.0); }
 
 
-static inline fe_pair_t fe_from_i64(int64_t x)
-{
-  double h = (double)x;
-  double l = (double)(x-((int64_t)h));
-  return fe_pair(h,l);
-}
-
-static inline int64_t fe_to_i64(fe_pair_t x)
-{
-  int64_t h = (int64_t)x.hi;
-  int64_t l = (int64_t)x.lo;
-  return h+l;
-}
-
 // hack type specialization to lower copy-pasta & eye-ball identical functionality
 // 1) type pun: the type part
 static inline fr_pair_t fe2fr(fe_pair_t x) { return fr_pair(x.hi,x.lo); }
@@ -149,7 +135,7 @@ static inline double fr_result(fr_pair_t x) { return x.hi+x.lo; }
 extern fe_noinline double add3_slowpath_f64(fe_pair_t, fe_pair_t);
 extern fe_noinline fe_pair_t   fe_add_d_cr_slowpath(fe_pair_t, fe_pair_t, fe_pair_t);
 extern fe_noinline fe_triple_t fe_triple_add_pd_slowpath(fe_pair_t, fe_pair_t, fe_pair_t);
-
+extern fe_noinline int64_t fe_to_i64_slowpath(fe_pair_t x, double a);
 
 extern fe_pair_t fe_pow_pn_d(double x, uint64_t n);
 extern fe_pair_t fe_pow_n_d(double x, int64_t n);
@@ -1656,6 +1642,28 @@ double fe_result_add(fe_pair_t x, fe_pair_t y)
   return σ;
 }
 
+// |x| >= 2^63 or NaN
+fe_noinline int64_t fe_to_i64_slowpath(fe_pair_t x, double a)
+{
+  int64_t r = INT64_MIN;
+  
+  if (x.hi > 0.0) {
+    r -= 1;
+    
+    if (a == 0x1.0p63) {
+      if (x.lo < 0.0 && x.lo > -0x1.0p63)
+        return r+(int64_t)x.lo+1;
+    }
+    
+    return r;
+  }
+  
+  if (a == 0x1.0p63 && x.lo < 0x1.0p63)
+    r += (int64_t)x.lo;
+  
+  return r;
+}
+
 #endif
 
 
@@ -1834,6 +1842,37 @@ static const fe_pair_t fe_k_e        = {.hi = 0x1.5bf0a8b145769p1,  .lo= 0x1.4d5
 static const fe_pair_t fe_k_e_i      = {.hi = 0x1.78b56362cef38p-2, .lo=-0x1.ca8a4270fadf5p-57};
 static const fe_pair_t fe_k_sqrt_2   = {.hi = 0x1.6a09e667f3bcdp0,  .lo=-0x1.bdd3413b26456p-54};
 static const fe_pair_t fe_k_sqrt_2_i = {.hi = 0x1.6a09e667f3bcdp-1, .lo=-0x1.bdd3413b26456p-55};
+
+
+static inline fe_pair_t fe_from_i64(int64_t x)
+{
+  // split the hi word so no rounding occurs
+  double a = (double)(x & (int64_t)UINT64_C(0xffffffff00000000));
+  double b = (double)(x-((int64_t)a));
+
+  // fast-sum to canonicalize: note legal when a=0
+  return fe_fast_sum(a,b);
+}
+
+
+// if conversion of hi of 'x' cannot integer overflow
+static inline int64_t fe_to_i64_i(fe_pair_t x)
+{
+  int64_t h = (int64_t)x.hi;
+  int64_t l = (int64_t)x.lo;
+  return h+l;
+}
+
+// convert to integer: values that overflow are saturated. NaN
+// maps to min-integer
+static inline int64_t fe_to_i64(fe_pair_t x)
+{
+  double a = fabs(x.hi);
+  
+  if (a < 0x1.0p63) return fe_to_i64_i(x);
+
+  return fe_to_i64_slowpath(x,a);
+}
 
 
 static inline fe_pair_t fe_one(void)       { return fe_set_d( 1.0);  }
