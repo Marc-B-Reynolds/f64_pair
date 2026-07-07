@@ -40,12 +40,19 @@
 // of attempting to modifiy them in source. it'd be nice if compilers provided the
 // features needed to go this route but...
 #if defined(__clang__)
-#pragma STDC FP_CONTRACT OFF
+// can't count on the following being disabled w hostile options:
+// contraction, respecting inf & respecting NaNs
+#pragma float_control(precise,on)
 #pragma clang fp reassociate(off)
-//#pragma clang fp fast(off)     // whimper
+#pragma clang fp contract(off)         // can be ignored :(
+#pragma clang fp exceptions(ignore)
+
+#if (__clang_major__ >= 18)
+#pragma clang fp reciprocal(off)
+#endif
 #elif defined(__GNUC__)
-#pragma GCC optimize ("fp-contract=off")
 #pragma GCC optimize ("no-fast-math")
+#pragma GCC optimize ("fp-contract=off")
 #pragma GCC optimize ("no-math-errno")
 #pragma GCC optimize ("no-trapping-math")
 #else
@@ -1893,6 +1900,12 @@ static inline _Bool fe_eq(fe_pair_t x, fe_pair_t y)
   return (x.hi == y.hi) && (x.lo == y.lo);
 }
 
+
+// gt() { return (x.hi > y.hi || (x.hi == y.hi && x.lo >  y.lo)); }
+// ge() { return (x.hi > y.hi || (x.hi == y.hi && x.lo >= y.lo)); }
+// lt() { return (x.hi < y.hi || (x.hi == y.hi && x.lo <  y.lo)); }
+// le() { return (x.hi < y.hi || (x.hi == y.hi && x.lo <= y.lo)); }
+// ne() { return (x.hi != y.hi || x.lo != y.lo); }
 
 // generics versions (dd = double-double). Nothing really here yet because
 // I'm not so sure it's an interesting thing to do. Treating double-doubles
