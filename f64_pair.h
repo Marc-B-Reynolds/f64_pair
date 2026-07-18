@@ -63,7 +63,7 @@
 static_assert(0, "unknown compiler: fill in the blanks");
 #endif
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(__clang__)
   #define fe_noinline    __attribute__((noinline))
   #define fe_likely(x)   __builtin_expect(!!(x), 1)
   #define fe_unlikely(x) __builtin_expect(!!(x), 0)
